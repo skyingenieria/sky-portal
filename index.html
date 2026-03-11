@@ -644,6 +644,10 @@
       <span class="item-icon">📐</span> CYPE → GSheets
       <span class="item-dot" style="background:var(--green)"></span>
     </a>
+    <a class="sidebar-item" href="#" onclick="openAgent('onboarding'); return false;">
+      <span class="item-icon">🚀</span> Onboarding
+      <span class="item-dot" style="background:var(--green)"></span>
+    </a>
     <a class="sidebar-item" href="#" onclick="return false;">
       <span class="item-icon">💰</span> Presupuestos
       <span class="item-dot" style="background:var(--amber)"></span>
@@ -732,6 +736,19 @@
             <span class="tag">Sheets API</span>
           </div>
         </a>
+        <a class="agent-card active-card" onclick="openAgent('onboarding'); return false;" href="#">
+          <div class="card-top">
+            <div class="card-icon-wrap" style="background:#f0fdf4">🚀</div>
+            <span class="badge badge-live">● Live</span>
+          </div>
+          <div class="card-title">Onboarding de Proyecto</div>
+          <div class="card-desc">Crea la carpeta del proyecto en Drive a partir del template. Clockify, Slack y Asana próximamente.</div>
+          <div class="card-tags">
+            <span class="tag">Drive</span>
+            <span class="tag">Template</span>
+            <span class="tag">Proyecto</span>
+          </div>
+        </a>
       </div>
 
       <!-- Coming soon section -->
@@ -784,7 +801,7 @@
 
       </div>
 
-      <!-- Agent panel -->
+      <!-- CYPE Agent panel -->
       <div id="agent-panel">
         <div class="panel-header">
           <div class="panel-header-icon">📐</div>
@@ -816,6 +833,38 @@
         </div>
       </div>
 
+      <!-- Onboarding panel -->
+      <div id="onboarding-panel" style="display:none; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-top:4px;">
+        <div class="panel-header">
+          <div class="panel-header-icon" style="background:linear-gradient(135deg,#0f7b6c,#34d399)">🚀</div>
+          <div>
+            <div class="panel-title">Onboarding de Proyecto</div>
+          </div>
+          <button class="panel-close" onclick="closeOnboarding()">✕</button>
+        </div>
+        <div class="panel-body">
+          <div class="cype-layout">
+
+            <!-- Tasks col -->
+            <div class="steps-col" id="ob-tasks-col"></div>
+
+            <!-- Terminal + run -->
+            <div>
+              <div class="terminal" id="ob-terminal">
+                <span class="log-info">// Completá los datos del proyecto y ejecutá el onboarding...</span>
+              </div>
+              <div class="run-wrap">
+                <button id="ob-run-btn" class="btn btn-primary run-btn" onclick="runOnboarding()" disabled>
+                  🔒 Autenticá con Google primero
+                </button>
+              </div>
+              <div id="ob-done-bar" style="display:none"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 </div>
@@ -825,7 +874,10 @@
 
 <script>
 const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
-const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly';
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive';
+
+// Template folder ID
+const TEMPLATE_FOLDER_ID = '1rhT_ajJF2WmxZcNzK5DewIFk7ktfcZ9q';
 
 let state = {
   token: null, step: 0,
@@ -835,7 +887,24 @@ let state = {
   running: false, done: false,
 };
 
+// ── Onboarding state ──
+let obState = {
+  token: null,
+  expediente: '', cliente: '', proyecto: '',
+  running: false, done: false, newFolderId: null,
+};
+
 function openAgent(id) {
+  if (id === 'onboarding') {
+    document.getElementById('agent-panel').style.display = 'none';
+    const p = document.getElementById('onboarding-panel');
+    p.style.display = 'block';
+    p.classList.add('fade-in');
+    p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    renderObTasks();
+    return;
+  }
+  document.getElementById('onboarding-panel').style.display = 'none';
   const p = document.getElementById('agent-panel');
   p.classList.add('open','fade-in');
   p.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -843,6 +912,9 @@ function openAgent(id) {
 }
 function closeAgent() {
   document.getElementById('agent-panel').classList.remove('open');
+}
+function closeOnboarding() {
+  document.getElementById('onboarding-panel').style.display = 'none';
 }
 
 function renderSteps() {
@@ -1150,6 +1222,293 @@ function log(msg, type='info') {
   if (term.querySelector('.log-info')?.textContent === '// esperando instrucciones...') term.innerHTML = '';
   term.appendChild(div);
   term.scrollTop = term.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════
+//  ONBOARDING DE PROYECTO
+// ═══════════════════════════════════════════════
+
+function obLog(msg, type='info') {
+  const term = document.getElementById('ob-terminal');
+  if (!term) return;
+  const time = new Date().toLocaleTimeString('es-AR', { hour12: false });
+  const div = document.createElement('div');
+  div.innerHTML = `<span class="log-time">${time}</span><span class="log-${type}">${msg}</span>`;
+  if (term.querySelector('.log-info')?.textContent?.includes('Completá los datos')) term.innerHTML = '';
+  term.appendChild(div);
+  term.scrollTop = term.scrollHeight;
+}
+
+function renderObTasks() {
+  const col = document.getElementById('ob-tasks-col');
+  if (!col) return;
+  col.innerHTML = '';
+
+  const tasks = [
+    { id: 'ob-auth',   label: 'Autenticación Google',         icon: '🔑' },
+    { id: 'ob-datos',  label: 'Datos del proyecto',           icon: '📋' },
+    { id: 'ob-drive',  label: 'Duplicar carpeta en Drive',    icon: '📁' },
+    { id: 'ob-clock',  label: 'Crear proyecto en Clockify',   icon: '⏱️', soon: true },
+    { id: 'ob-slack',  label: 'Canal en Slack',               icon: '💬', soon: true },
+    { id: 'ob-asana',  label: 'Proyecto en Asana',            icon: '✅', soon: true },
+  ];
+
+  tasks.forEach(({ id, label, icon, soon }, i) => {
+    const taskIdx = i; // 0=auth,1=datos,2=drive,3..5=soon
+    // Determine state
+    let isDone = false, isActive = false;
+    if (i === 0) { isDone = !!obState.token; isActive = !obState.token; }
+    else if (i === 1) { isDone = obState.expediente && obState.cliente && obState.proyecto; isActive = !!obState.token && !isDone; }
+    else if (i === 2) { isDone = !!obState.newFolderId; isActive = obState.expediente && obState.cliente && obState.proyecto && !isDone; }
+    // soon tasks always idle
+
+    const el = document.createElement('div');
+    const cls = soon ? 'step-item' : isDone ? 'step-item step-done' : isActive ? 'step-item step-active' : 'step-item';
+    el.className = cls;
+    el.id = id;
+    if (soon) el.style.opacity = '0.45';
+
+    const numCls = isDone ? 'done' : isActive ? 'active' : 'idle';
+    el.innerHTML = `
+      <div class="step-row">
+        <div class="step-num ${numCls}">${isDone ? '✓' : icon}</div>
+        <div class="step-label">${label}</div>
+        ${soon ? `<span class="badge badge-soon" style="margin-left:auto;font-size:10px">Pronto</span>` : ''}
+      </div>
+      <div class="step-body" id="${id}-body"></div>
+    `;
+    col.appendChild(el);
+
+    // Render body for active step
+    const body = el.querySelector(`#${id}-body`);
+    if (isActive && i === 0) renderObAuthStep(body);
+    else if (isActive && i === 1) renderObDatosStep(body);
+    else if (isActive && i === 2) renderObDriveStep(body);
+    else if (isDone && i === 2 && obState.newFolderId) {
+      body.innerHTML = `<span style="font-size:12px;color:var(--green)">Carpeta creada correctamente</span>`;
+    }
+  });
+
+  updateObRunBtn();
+}
+
+function renderObAuthStep(b) {
+  b.innerHTML = `
+    <p style="font-size:12px;color:var(--text2);margin-bottom:8px;margin-top:2px;line-height:1.6">
+      Necesita acceso a Google Drive para copiar la carpeta template.
+    </p>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:7px" onclick="doObAuth()">
+      🔑 Autorizar con Google
+    </button>
+  `;
+}
+
+function renderObDatosStep(b) {
+  b.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+      <input class="input-field" id="ob-expediente" placeholder="Expediente (ej: F2501)"
+             value="${obState.expediente}" oninput="obState.expediente=this.value.trim();updateObRunBtn()" />
+      <input class="input-field" id="ob-cliente" placeholder="Cliente (ej: Fontana)"
+             value="${obState.cliente}" oninput="obState.cliente=this.value.trim();updateObRunBtn()" />
+      <input class="input-field" id="ob-proyecto" placeholder="Proyecto (ej: Edificio Centro)"
+             value="${obState.proyecto}" oninput="obState.proyecto=this.value.trim();updateObRunBtn()" />
+      <div style="font-size:11.5px;color:var(--text3);margin-top:2px">
+        Carpeta resultante: <span id="ob-preview" style="color:var(--text2);font-family:var(--mono)">—</span>
+      </div>
+    </div>
+  `;
+  // live preview
+  ['ob-expediente','ob-cliente','ob-proyecto'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', updateObPreview);
+  });
+  updateObPreview();
+}
+
+function updateObPreview() {
+  const exp = document.getElementById('ob-expediente')?.value.trim() || '';
+  const cli = document.getElementById('ob-cliente')?.value.trim() || '';
+  const proy = document.getElementById('ob-proyecto')?.value.trim() || '';
+  const preview = document.getElementById('ob-preview');
+  if (preview) {
+    if (exp || cli || proy) {
+      preview.textContent = `${exp || 'XXXX'} - ${cli || 'Cliente'} - ${proy || 'Proyecto'}`;
+    } else {
+      preview.textContent = '—';
+    }
+  }
+}
+
+function renderObDriveStep(b) {
+  const name = `${obState.expediente} - ${obState.cliente} - ${obState.proyecto}`;
+  b.innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.7">
+      Se va a duplicar la carpeta template y renombrarla:<br>
+      <span style="font-family:var(--mono);color:var(--accent);font-size:11.5px">${name}</span>
+    </div>
+  `;
+}
+
+function updateObRunBtn() {
+  const btn = document.getElementById('ob-run-btn');
+  if (!btn) return;
+  const { token, expediente, cliente, proyecto, running, done, newFolderId } = obState;
+
+  if (running) {
+    btn.className = 'btn run-btn';
+    btn.innerHTML = '<span class="spin">⚙️</span> Procesando...';
+    btn.disabled = true;
+  } else if (done) {
+    btn.className = 'btn btn-success run-btn';
+    btn.innerHTML = '✓ Proyecto creado — volver a ejecutar';
+    btn.disabled = false;
+  } else if (!token) {
+    btn.className = 'btn btn-primary run-btn';
+    btn.innerHTML = '🔒 Autenticá con Google primero';
+    btn.disabled = true;
+  } else if (!expediente || !cliente || !proyecto) {
+    btn.className = 'btn btn-primary run-btn';
+    btn.innerHTML = '📋 Completá los datos del proyecto';
+    btn.disabled = true;
+  } else {
+    btn.className = 'btn btn-primary run-btn';
+    btn.innerHTML = `🚀 Crear proyecto "${expediente} - ${cliente}"`;
+    btn.disabled = false;
+  }
+}
+
+function doObAuth() {
+  obLog('Abriendo autorización Google...', 'info');
+  const w = setInterval(() => {
+    if (!window.google?.accounts?.oauth2) return;
+    clearInterval(w);
+    const c = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
+      callback: (r) => {
+        if (r.error) { obLog('Error: '+r.error, 'error'); return; }
+        obState.token = r.access_token;
+        state.token = r.access_token; // share token with CYPE agent too
+        obLog('✓ Autenticado con Google', 'success');
+        renderObTasks();
+      }
+    });
+    c.requestAccessToken({ prompt: 'consent' });
+  }, 200);
+}
+
+async function runOnboarding() {
+  if (obState.running) return;
+  // Sync datos fields if still open
+  obState.expediente = document.getElementById('ob-expediente')?.value.trim() || obState.expediente;
+  obState.cliente    = document.getElementById('ob-cliente')?.value.trim()    || obState.cliente;
+  obState.proyecto   = document.getElementById('ob-proyecto')?.value.trim()   || obState.proyecto;
+
+  if (!obState.token || !obState.expediente || !obState.cliente || !obState.proyecto) return;
+
+  obState.running = true; obState.done = false; updateObRunBtn();
+  const folderName = `${obState.expediente} - ${obState.cliente} - ${obState.proyecto}`;
+
+  obLog('─── Iniciando onboarding de proyecto ───', 'heading');
+  obLog(`Proyecto: ${folderName}`, 'data');
+
+  try {
+    // 1. Get template folder metadata to find its parent
+    obLog('Buscando carpeta template...', 'info');
+    const metaR = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${TEMPLATE_FOLDER_ID}?fields=id,name,parents&supportsAllDrives=true`,
+      { headers: { Authorization: `Bearer ${obState.token}` } }
+    );
+    const meta = await metaR.json();
+    if (meta.error) throw new Error('Template no encontrado: ' + meta.error.message);
+    const parentId = meta.parents?.[0];
+    obLog(`✓ Template: "${meta.name}"`, 'success');
+    obLog(`✓ Directorio padre encontrado`, 'success');
+
+    // 2. Create new folder in same parent
+    obLog('Creando nueva carpeta...', 'info');
+    const createR = await fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${obState.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentId]
+      })
+    });
+    const newFolder = await createR.json();
+    if (newFolder.error) throw new Error('Error creando carpeta: ' + newFolder.error.message);
+    obState.newFolderId = newFolder.id;
+    obLog(`✓ Carpeta creada: "${folderName}"`, 'success');
+
+    // 3. Copy all contents from template recursively
+    obLog('Copiando contenido del template...', 'info');
+    const copied = await copyFolderContents(TEMPLATE_FOLDER_ID, newFolder.id);
+    obLog(`✓ ${copied} elemento(s) copiado(s)`, 'success');
+
+    // 4. Done!
+    obLog('─── ¡Proyecto creado exitosamente! ───', 'heading');
+    obState.done = true;
+    renderObTasks();
+
+    const doneBar = document.getElementById('ob-done-bar');
+    if (doneBar) {
+      doneBar.style.display = 'flex';
+      doneBar.innerHTML = `
+        <span>✓ Carpeta "<strong>${folderName}</strong>" creada en Drive</span>
+        <a href="https://drive.google.com/drive/folders/${newFolder.id}" target="_blank">Abrir en Drive ↗</a>
+      `;
+    }
+
+    obLog('', 'info');
+    obLog('Próximos pasos (próximamente):', 'warn');
+    obLog('  ⏱️  Crear proyecto en Clockify', 'info');
+    obLog('  💬  Crear canal en Slack', 'info');
+    obLog('  ✅  Crear proyecto en Asana', 'info');
+
+  } catch(err) {
+    obLog('Error: ' + err.message, 'error');
+  }
+
+  obState.running = false; updateObRunBtn();
+}
+
+// Recursively copy folder contents
+async function copyFolderContents(srcId, dstId) {
+  let count = 0;
+  // List all items in source folder
+  const q = encodeURIComponent(`'${srcId}' in parents and trashed=false`);
+  const r = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,mimeType)&supportsAllDrives=true&includeItemsFromAllDrives=true&pageSize=100`,
+    { headers: { Authorization: `Bearer ${obState.token}` } }
+  );
+  const data = await r.json();
+  if (data.error) throw new Error(data.error.message);
+
+  for (const file of (data.files || [])) {
+    if (file.mimeType === 'application/vnd.google-apps.folder') {
+      // Create subfolder in destination
+      const cr = await fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${obState.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: file.name, mimeType: 'application/vnd.google-apps.folder', parents: [dstId] })
+      });
+      const newSub = await cr.json();
+      if (newSub.error) throw new Error(newSub.error.message);
+      obLog(`  📁 ${file.name}/`, 'data');
+      count += await copyFolderContents(file.id, newSub.id);
+    } else {
+      // Copy file
+      const cp = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/copy?supportsAllDrives=true`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${obState.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: file.name, parents: [dstId] })
+      });
+      const copied = await cp.json();
+      if (copied.error) { obLog(`  ⚠️ No se pudo copiar ${file.name}`, 'warn'); continue; }
+      obLog(`  📄 ${file.name}`, 'data');
+      count++;
+    }
+  }
+  return count;
 }
 </script>
 </body>
