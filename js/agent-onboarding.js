@@ -193,21 +193,29 @@ function updateObRunBtn() {
 
 function doObAuth() {
   obLog('Abriendo autorización Google...', 'info');
-  const w = setInterval(() => {
-    if (!window.google?.accounts?.oauth2) return;
-    clearInterval(w);
-    const c = window.google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
-      callback: (r) => {
-        if (r.error) { obLog('Error: '+r.error, 'error'); return; }
-        if (typeof setToken === 'function') setToken(r.access_token);
-        else { obState.token = r.access_token; state.token = r.access_token; }
-        obLog('✓ Autenticado con Google', 'success');
-        renderObTasks();
-      }
-    });
-    c.requestAccessToken({ prompt: 'consent' });
-  }, 200);
+  if (typeof _gsiClient !== 'undefined' && _gsiClient) {
+    _gsiClient.callback = (r) => {
+      if (r.error) { obLog('Error: '+r.error, 'error'); return; }
+      if (typeof setToken === 'function') setToken(r.access_token);
+      else { obState.token = r.access_token; state.token = r.access_token; }
+      obLog('✓ Autenticado con Google', 'success');
+      renderObTasks();
+    };
+    _gsiClient.requestAccessToken({ prompt: 'consent' });
+    return;
+  }
+  if (!window.google?.accounts?.oauth2) { obLog('Google aún no cargó', 'error'); return; }
+  const c = window.google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
+    callback: (r) => {
+      if (r.error) { obLog('Error: '+r.error, 'error'); return; }
+      if (typeof setToken === 'function') setToken(r.access_token);
+      else { obState.token = r.access_token; state.token = r.access_token; }
+      obLog('✓ Autenticado con Google', 'success');
+      renderObTasks();
+    }
+  });
+  c.requestAccessToken({ prompt: 'consent' });
 }
 
 // ── RUNNER PRINCIPAL ──
