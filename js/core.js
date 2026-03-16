@@ -106,3 +106,59 @@ function renderSteps() {
   });
   updateRunBtn();
 }
+
+// ════════════════════════════════════════════
+// AUTENTICACIÓN GLOBAL — sirve a todos los agentes
+// ════════════════════════════════════════════
+
+// Token compartido — todos los agentes leen de acá
+let globalToken = null;
+
+function getToken() {
+  return globalToken || state?.token || obState?.token || null;
+}
+
+function setToken(token) {
+  globalToken = token;
+  // Propagar a todos los estados
+  state.token = token;
+  if (typeof obState !== 'undefined') obState.token = token;
+  // Actualizar UI global
+  const btn    = document.getElementById('global-auth-btn');
+  const status = document.getElementById('global-auth-status');
+  if (btn)    { btn.textContent = '✓ Google conectado'; btn.style.background = 'var(--green-bg)'; btn.style.color = 'var(--green)'; btn.style.border = '1px solid var(--green)'; btn.disabled = true; }
+  if (status) status.style.display = 'flex';
+  // Habilitar botones de run en todos los agentes
+  ['run-btn','ob-run-btn','pre-run-btn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.disabled = false; }
+  });
+  document.getElementById('run-btn') && (document.getElementById('run-btn').innerHTML = '▶ Procesar PDF con IA');
+  document.getElementById('ob-run-btn') && (document.getElementById('ob-run-btn').textContent = '🚀 Ejecutar Onboarding');
+  document.getElementById('pre-run-btn') && (document.getElementById('pre-run-btn').textContent = '🚀 Generar Presupuesto');
+}
+
+function doGlobalAuth() {
+  const btn = document.getElementById('global-auth-btn');
+  if (btn) btn.textContent = '⏳ Conectando...';
+  const wait = setInterval(() => {
+    if (!window.google?.accounts?.oauth2) return;
+    clearInterval(wait);
+    const client = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: SCOPES,
+      callback: (r) => {
+        if (r.error) {
+          if (btn) btn.textContent = '🔑 Conectar Google';
+          console.error('Auth error:', r.error);
+          return;
+        }
+        setToken(r.access_token);
+        // Refrescar pasos abiertos
+        if (typeof renderSteps === 'function' && state.step === 0) { state.step = 1; renderSteps(); }
+        if (typeof renderObTasks === 'function') renderObTasks();
+      }
+    });
+    client.requestAccessToken({ prompt: '' });
+  }, 200);
+}
