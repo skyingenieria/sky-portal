@@ -330,19 +330,22 @@ async function runOnboarding() {
       obLog('✅  Creando proyecto en Asana...', 'heading');
       try {
         // Fechas requeridas por la API de Asana
-        const today = new Date();
-        const startDate = today.toISOString().split('T')[0];
-        const dueDate = new Date(today.setMonth(today.getMonth() + 3)).toISOString().split('T')[0];
+        const todayD = new Date();
+        const startDate = todayD.toISOString().split('T')[0];
+        const dueD = new Date(todayD); dueD.setDate(dueD.getDate() + 90);
+        const dueDate = dueD.toISOString().split('T')[0];
 
         let body, endpoint;
+        // Team GID requerido por Asana — guardado en localStorage
+        const asanaTeam = obState.asanaTeam || localStorage.getItem('sky_asana_team') || '1200032286600828';
+
         if (obState.asanaTemplate) {
-          // Al instanciar un template, NO mandamos requested_dates
-          // (los GIDs de fecha son propios de cada template y no son genéricos)
           endpoint = `https://app.asana.com/api/1.0/project_templates/${obState.asanaTemplate}/instantiateProject`;
           body = {
             data: {
               name: folderName,
               public: false,
+              team: asanaTeam,
               workspace: obState.asanaWorkspace,
             }
           };
@@ -352,6 +355,7 @@ async function runOnboarding() {
             data: {
               name: folderName,
               workspace: obState.asanaWorkspace,
+              team: asanaTeam,
               color: 'light-blue',
               default_view: 'list',
               start_on: startDate,
