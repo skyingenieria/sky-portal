@@ -89,7 +89,8 @@ function doAuth() {
       client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
       callback: (r) => {
         if (r.error) { log('Error: '+r.error, 'error'); return; }
-        state.token = r.access_token;
+        if (typeof setToken === 'function') setToken(r.access_token);
+        else state.token = r.access_token;
         log('✓ Autenticado con Google', 'success');
         state.step = 1; renderSteps();
       }
