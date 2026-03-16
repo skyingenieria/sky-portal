@@ -138,27 +138,52 @@ function setToken(token) {
   document.getElementById('pre-run-btn') && (document.getElementById('pre-run-btn').textContent = '🚀 Generar Presupuesto');
 }
 
+// El client se inicializa al cargar la página (no en el click)
+// para que requestAccessToken() se llame directamente desde el user gesture
+let _gsiClient = null;
+
+function initGsiClient() {
+  if (!window.google?.accounts?.oauth2) return;
+  if (_gsiClient) return;
+  _gsiClient = window.google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: SCOPES,
+    callback: (r) => {
+      const btn = document.getElementById('global-auth-btn');
+      if (r.error) {
+        if (btn) btn.textContent = '🔑 Conectar Google';
+        console.error('Auth error:', r.error);
+        return;
+      }
+      setToken(r.access_token);
+      if (typeof renderSteps === 'function' && state.step === 0) { state.step = 1; renderSteps(); }
+      if (typeof renderObTasks === 'function') renderObTasks();
+    },
+    error_callback: (e) => {
+      const btn = document.getElementById('global-auth-btn');
+      if (btn) btn.textContent = '🔑 Conectar Google';
+      console.error('GSI error:', e);
+    }
+  });
+}
+
+// Llamar initGsiClient apenas carga la librería
+function waitForGsi() {
+  if (window.google?.accounts?.oauth2) { initGsiClient(); return; }
+  setTimeout(waitForGsi, 200);
+}
+waitForGsi();
+
 function doGlobalAuth() {
   const btn = document.getElementById('global-auth-btn');
   if (btn) btn.textContent = '⏳ Conectando...';
-  const wait = setInterval(() => {
-    if (!window.google?.accounts?.oauth2) return;
-    clearInterval(wait);
-    const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: SCOPES,
-      callback: (r) => {
-        if (r.error) {
-          if (btn) btn.textContent = '🔑 Conectar Google';
-          console.error('Auth error:', r.error);
-          return;
-        }
-        setToken(r.access_token);
-        // Refrescar pasos abiertos
-        if (typeof renderSteps === 'function' && state.step === 0) { state.step = 1; renderSteps(); }
-        if (typeof renderObTasks === 'function') renderObTasks();
-      }
-    });
-    client.requestAccessToken({ prompt: '' });
-  }, 200);
+  // Si el cliente no está listo todavía, inicializarlo
+  if (!_gsiClient) initGsiClient();
+  if (!_gsiClient) {
+    if (btn) btn.textContent = '🔑 Conectar Google';
+    alert('Google aún no cargó. Intentá en un momento.');
+    return;
+  }
+  // requestAccessToken directo desde el user gesture — el popup NO se bloquea
+  _gsiClient.requestAccessToken({ prompt: 'consent' });
 }
