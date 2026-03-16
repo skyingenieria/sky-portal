@@ -1,4 +1,4 @@
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
+const GOOGLE_CLIENT_ID = '277799503106-ak7jbpsu92ut583mo6u84dvr1kru9sli.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents';
 
 // Template folder ID
