@@ -1,0 +1,108 @@
+const GOOGLE_CLIENT_ID = '277799503106-ak7jbpsu92ut583mo6u84dvr1kru9sli.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents';
+
+// Template folder ID
+const TEMPLATE_FOLDER_ID = '1rhT_ajJF2WmxZcNzK5DewIFk7ktfcZ9q';
+
+let state = {
+  token: null, step: 0,
+  folders: [], selectedFolder: null,
+  sheets: [], selectedSheet: null,
+  pdfFile: null, pdfBase64: null,
+  running: false, done: false,
+};
+
+// ── Onboarding state ──
+let obState = {
+  token: null,
+  expediente: '', cliente: '', proyecto: '',
+  running: false, done: false, newFolderId: null,
+  // API keys — se cargan desde localStorage (o se ingresan en el panel)
+  clockifyKey:       localStorage.getItem('sky_clockify_key') || '',
+  clockifyWorkspace: localStorage.getItem('sky_clockify_ws')  || '',
+  clockifyUserId:    localStorage.getItem('sky_clockify_uid') || '',
+  asanaToken:        localStorage.getItem('sky_asana_token')  || '',
+  asanaWorkspace:    localStorage.getItem('sky_asana_ws')     || '',
+  asanaTemplate:     localStorage.getItem('sky_asana_tpl')    || '',
+  slackToken:        localStorage.getItem('sky_slack_token')  || '',
+  slackChannel: '',
+  // Results
+  clockifyProjectId: null,
+  asanaProjectId: null,
+  slackChannelId: null,
+};
+
+function openAgent(id) {
+  // hide all panels first
+  document.getElementById('agent-panel').style.display = 'none';
+  document.getElementById('onboarding-panel').style.display = 'none';
+  const prePanel = document.getElementById('presupuestos-panel');
+  if (prePanel) prePanel.style.display = 'none';
+
+  if (id === 'onboarding') {
+    const p = document.getElementById('onboarding-panel');
+    p.style.display = 'block';
+    p.classList.add('fade-in');
+    p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    renderObTasks();
+    return;
+  }
+  if (id === 'presupuestos') {
+    openAgent_presupuestos();
+    return;
+  }
+  const p = document.getElementById('agent-panel');
+  p.classList.add('open','fade-in');
+  p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  renderSteps();
+}
+function closeAgent() {
+  document.getElementById('agent-panel').classList.remove('open');
+}
+function closeOnboarding() {
+  document.getElementById('onboarding-panel').style.display = 'none';
+}
+
+function renderSteps() {
+  const col = document.getElementById('steps-col');
+  col.innerHTML = '';
+  const steps = [
+    { n:1, label:'Autenticación Google', id:'step-auth' },
+    { n:2, label:'Carpeta del proyecto', id:'step-folder' },
+    { n:3, label:'Sheet de metraje', id:'step-sheet' },
+    { n:4, label:'PDF de CYPECAD', id:'step-pdf' },
+  ];
+  steps.forEach(({ n, label, id }, i) => {
+    const done = state.step > i;
+    const active = state.step === i;
+    const el = document.createElement('div');
+    el.className = `step-item ${done?'step-done':active?'step-active':''}`;
+    el.id = id;
+    const numCls = done?'done':active?'active':'idle';
+    el.innerHTML = `
+      <div class="step-row">
+        <div class="step-num ${numCls}">${done?'✓':n}</div>
+        <div class="step-label">${label}</div>
+      </div>
+      <div class="step-body" id="${id}-body"></div>
+    `;
+    col.appendChild(el);
+    if (active) {
+      const b = el.querySelector(`#${id}-body`);
+      if (i===0) renderAuthStep(b);
+      if (i===1) renderFolderStep(b);
+      if (i===2) renderSheetStep(b);
+      if (i===3) renderPdfStep(b);
+    } else if (done) {
+      const b = el.querySelector(`#${id}-body`);
+      const sums = [
+        `<span style="font-size:12px;color:var(--green)">Conectado con Google</span>`,
+        `<span style="font-size:12px;color:var(--green)">${state.selectedFolder?.name||''}</span>`,
+        `<span style="font-size:12px;color:var(--green)">${state.selectedSheet?.name||''}</span>`,
+        `<span style="font-size:12px;color:var(--green)">${state.pdfFile?.name||''}</span>`,
+      ];
+      b.innerHTML = sums[i]||'';
+    }
+  });
+  updateRunBtn();
+}
