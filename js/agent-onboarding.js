@@ -277,12 +277,37 @@ async function runOnboarding() {
         const r = await fetch(`https://api.clockify.me/api/v1/workspaces/${obState.clockifyWorkspace}/projects`, {
           method: 'POST',
           headers: { 'X-Api-Key': obState.clockifyKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: folderName, color: '#2383e2', billable: true, public: false })
+          body: JSON.stringify({ name: folderName, color: '#03A9F4', billable: true, public: false })
         });
         const d = await r.json();
         if (d.id) {
           obState.clockifyProjectId = d.id;
           obLog(`✓ Proyecto Clockify creado: ${d.name}`, 'success');
+
+          // ── Crear tasks en el proyecto ──
+          const tasks = [
+            'ING - ANTEPROYECTO',
+            'ING - PROYECTO',
+            'DEL - ANTEPROYECTO',
+            'DEL - PROYECTO',
+          ];
+          obLog('  Creando tasks...', 'info');
+          for (const taskName of tasks) {
+            try {
+              const tr = await fetch(`https://api.clockify.me/api/v1/workspaces/${obState.clockifyWorkspace}/projects/${d.id}/tasks`, {
+                method: 'POST',
+                headers: { 'X-Api-Key': obState.clockifyKey, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: taskName, status: 'ACTIVE' })
+              });
+              const td = await tr.json();
+              if (td.id) {
+                obLog(`  ✓ Task: ${taskName}`, 'success');
+              } else {
+                obLog(`  ⚠️ Task ${taskName}: ${td.message || JSON.stringify(td)}`, 'warn');
+              }
+            } catch(te) { obLog(`  ⚠️ Task ${taskName}: ${te.message}`, 'warn'); }
+          }
+
         } else {
           obLog(`⚠️ Clockify: ${d.message || JSON.stringify(d)}`, 'warn');
         }
@@ -296,21 +321,38 @@ async function runOnboarding() {
       obLog('', 'info');
       obLog('✅  Creando proyecto en Asana...', 'heading');
       try {
-        const body = {
-          data: {
-            name: folderName,
-            workspace: obState.asanaWorkspace,
-            color: 'light-blue',
-            default_view: 'list',
-            notes: `Proyecto: ${obState.proyecto}\nCliente: ${obState.cliente}\nExpediente: ${obState.expediente}`,
-          }
-        };
-        const endpoint = obState.asanaTemplate
-          ? `https://app.asana.com/api/1.0/project_templates/${obState.asanaTemplate}/instantiateProject`
-          : 'https://app.asana.com/api/1.0/projects';
+        // Fechas requeridas por la API de Asana
+        const today = new Date();
+        const startDate = today.toISOString().split('T')[0];
+        const dueDate = new Date(today.setMonth(today.getMonth() + 3)).toISOString().split('T')[0];
 
+        let body, endpoint;
         if (obState.asanaTemplate) {
-          body.data = { name: folderName, public: false, workspace: obState.asanaWorkspace };
+          endpoint = `https://app.asana.com/api/1.0/project_templates/${obState.asanaTemplate}/instantiateProject`;
+          body = {
+            data: {
+              name: folderName,
+              public: false,
+              workspace: obState.asanaWorkspace,
+              requested_dates: [
+                { gid: 'start_date', value: startDate },
+                { gid: 'due_date',   value: dueDate   },
+              ]
+            }
+          };
+        } else {
+          endpoint = 'https://app.asana.com/api/1.0/projects';
+          body = {
+            data: {
+              name: folderName,
+              workspace: obState.asanaWorkspace,
+              color: 'light-blue',
+              default_view: 'list',
+              start_on: startDate,
+              due_on: dueDate,
+              notes: `Proyecto: ${obState.proyecto}\nCliente: ${obState.cliente}\nExpediente: ${obState.expediente}`,
+            }
+          };
         }
 
         const r = await fetch(endpoint, {
@@ -338,30 +380,34 @@ async function runOnboarding() {
       try {
         const channelName = slugify(`${obState.expediente}-${obState.cliente}`);
         obState.slackChannel = channelName;
+
+        // Slack API requiere form-encoded para conversations.create desde browser
+        const params = new URLSearchParams({ name: channelName, is_private: 'false' });
         const r = await fetch('https://slack.com/api/conversations.create', {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${obState.slackToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: channelName, is_private: false })
+          headers: { 'Authorization': `Bearer ${obState.slackToken}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
         });
         const d = await r.json();
         if (d.ok) {
           obState.slackChannelId = d.channel.id;
           obLog(`✓ Canal creado: #${channelName} (${d.channel.id})`, 'success');
           // Post welcome message
+          const msgParams = new URLSearchParams({
+            channel: d.channel.id,
+            text: `🚀 *Nuevo proyecto*\n*Expediente:* ${obState.expediente}\n*Cliente:* ${obState.cliente}\n*Proyecto:* ${obState.proyecto}\n*Drive:* https://drive.google.com/drive/folders/${obState.newFolderId}`
+          });
           await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${obState.slackToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              channel: d.channel.id,
-              text: `🚀 *Nuevo proyecto creado*\n*Expediente:* ${obState.expediente}\n*Cliente:* ${obState.cliente}\n*Proyecto:* ${obState.proyecto}\n*Drive:* https://drive.google.com/drive/folders/${obState.newFolderId}`
-            })
+            headers: { 'Authorization': `Bearer ${obState.slackToken}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: msgParams.toString()
           });
           obLog('  ✓ Mensaje de bienvenida enviado', 'success');
         } else {
           if (d.error === 'name_taken') {
             obLog(`⚠️ El canal #${channelName} ya existe`, 'warn');
           } else {
-            obLog(`⚠️ Slack: ${d.error}`, 'warn');
+            obLog(`⚠️ Slack: ${d.error || JSON.stringify(d)}`, 'warn');
           }
         }
       } catch(e) { obLog('⚠️ Error Slack: ' + e.message, 'warn'); }
