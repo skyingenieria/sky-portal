@@ -4,6 +4,39 @@
 const PRESUPUESTOS_SHEET_ID = () => document.getElementById('pre-sheet-id')?.value || localStorage.getItem('sky_pre_sheet') || '1cnIJPZeLDvv0Fr9sjVnslfGcHNlXUL-iwEhcPzERKT8';
 const PRESUPUESTOS_TEMPLATE_ID = () => document.getElementById('pre-template-id')?.value || localStorage.getItem('sky_pre_template') || '1TLUn9ZBcsW8AQg9DE6DHGhJTBXOtJF5WxlICZHm1SGQ';
 
+// ── Token compartido: cualquier auth sirve para presupuestos ──
+function getPreToken() {
+  return (typeof getToken === 'function' ? getToken() : null) || state?.token || obState?.token || null;
+}
+
+function preUpdateAuthBtn() {
+  const token = getPreToken();
+  const btn = document.getElementById('pre-run-btn');
+  const authBtn = document.getElementById('pre-auth-btn');
+  if (!btn) return;
+  if (token) {
+    btn.disabled = false;
+    btn.textContent = '🚀 Generar Presupuesto';
+    if (authBtn) authBtn.style.display = 'none';
+  } else {
+    btn.disabled = true;
+    btn.textContent = '🔒 Autenticá con Google primero';
+    if (authBtn) authBtn.style.display = 'inline-flex';
+  }
+}
+
+function doPreAuth() {
+  // Reusa el mismo flujo de auth de onboarding
+  doObAuth();
+  // Poll hasta que el token esté disponible
+  const poll = setInterval(() => {
+    if (getPreToken()) {
+      clearInterval(poll);
+      preUpdateAuthBtn();
+    }
+  }, 500);
+}
+
 function openAgent_presupuestos() {
   document.getElementById('agent-panel').style.display = 'none';
   document.getElementById('onboarding-panel').style.display = 'none';
@@ -11,17 +44,27 @@ function openAgent_presupuestos() {
   p.style.display = 'block';
   p.classList.add('fade-in');
   p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
   // Set today's date
   const today = new Date().toISOString().split('T')[0];
-  if (document.getElementById('pre-fecha')) document.getElementById('pre-fecha').value = today;
-  // Init honorarios values from localStorage
+  const fechaEl = document.getElementById('pre-fecha');
+  if (fechaEl && !fechaEl.value) fechaEl.value = today;
+
+  // Init values from localStorage
   ['hon-basico','hon-full','hon-express','hon-dolar'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
-      const key = 'sky_' + id.replace('-','_');
-      if (!el.value) el.value = localStorage.getItem(key) || '';
-    }
+    if (el && !el.value) el.value = localStorage.getItem('sky_' + id.replace('-','_')) || '';
   });
+
+  // Fix template/sheet ID fields
+  const tplEl = document.getElementById('pre-template-id');
+  const sheetEl = document.getElementById('pre-sheet-id');
+  if (tplEl && (!tplEl.value || tplEl.value.includes('localStorage')))
+    tplEl.value = localStorage.getItem('sky_pre_template') || '1TLUn9ZBcsW8AQg9DE6DHGhJTBXOtJF5WxlICZHm1SGQ';
+  if (sheetEl && (!sheetEl.value || sheetEl.value.includes('localStorage')))
+    sheetEl.value = localStorage.getItem('sky_pre_sheet') || '1cnIJPZeLDvv0Fr9sjVnslfGcHNlXUL-iwEhcPzERKT8';
+
+  preUpdateAuthBtn();
 }
 
 function closePresupuestos() {
@@ -109,8 +152,25 @@ function numberToWords(n, moneda) {
   return cap + ' pesos argentinos';
 }
 
+// Formatea input de honorarios como $ 1.000.000 mientras se escribe
+function formatHonInput(el) {
+  const raw = el.value.replace(/[^0-9]/g, '');
+  if (!raw) { el.value = ''; return; }
+  const num = parseInt(raw, 10);
+  el.value = '$ ' + num.toLocaleString('es-AR');
+  // Guardar valor numérico en dataset para recuperarlo fácilmente
+  el.dataset.raw = raw;
+}
+
+// Extrae el valor numérico de un input formateado
+function getRawHon(id) {
+  const el = document.getElementById(id);
+  if (!el) return '';
+  return el.dataset.raw || el.value.replace(/[^0-9]/g, '') || '';
+}
+
 function updateHonLetras() {
-  const val = parseFloat(document.getElementById('pre-hon1')?.value) || 0;
+  const val = parseFloat(getRawHon('pre-hon1')) || 0;
   const moneda = document.getElementById('pre-moneda')?.value || 'ARS';
   const el = document.getElementById('pre-hon-letras');
   if (el && val) el.value = numberToWords(val, moneda);
@@ -135,7 +195,7 @@ function preLog(msg, type='info') {
 
 // ── RUN PRESUPUESTO ──
 async function runPresupuesto() {
-  const token = state.token || obState.token;
+  const token = getPreToken();
   if (!token) { preLog('❌ Autenticá con Google primero', 'err'); return; }
 
   const btn = document.getElementById('pre-run-btn');
@@ -155,9 +215,9 @@ async function runPresupuesto() {
     superficie:document.getElementById('pre-sup')?.value?.trim() || '',
     plano:     document.getElementById('pre-plano')?.value?.trim() || '',
     moneda:    document.getElementById('pre-moneda')?.value || 'ARS',
-    hon1:      document.getElementById('pre-hon1')?.value?.trim() || '',
-    hon2:      document.getElementById('pre-hon2')?.value?.trim() || '',
-    hon3:      document.getElementById('pre-hon3')?.value?.trim() || '',
+    hon1:      getRawHon('pre-hon1'),
+    hon2:      getRawHon('pre-hon2'),
+    hon3:      getRawHon('pre-hon3'),
     honLetras: document.getElementById('pre-hon-letras')?.value?.trim() || '',
     anticipo:  document.getElementById('pre-anticipo')?.value?.trim() || '50',
     saldo:     document.getElementById('pre-saldo')?.value?.trim() || '50',
