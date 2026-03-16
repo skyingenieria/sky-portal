@@ -82,21 +82,31 @@ function updateRunBtn() {
 
 function doAuth() {
   log('Abriendo ventana de autorización Google...', 'info');
-  const w = setInterval(() => {
-    if (!window.google?.accounts?.oauth2) return;
-    clearInterval(w);
-    const c = window.google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
-      callback: (r) => {
-        if (r.error) { log('Error: '+r.error, 'error'); return; }
-        if (typeof setToken === 'function') setToken(r.access_token);
-        else state.token = r.access_token;
-        log('✓ Autenticado con Google', 'success');
-        state.step = 1; renderSteps();
-      }
-    });
-    c.requestAccessToken({ prompt: 'consent' });
-  }, 200);
+  // Reusar el cliente global si existe
+  if (typeof _gsiClient !== 'undefined' && _gsiClient) {
+    _gsiClient.callback = (r) => {
+      if (r.error) { log('Error: '+r.error, 'error'); return; }
+      if (typeof setToken === 'function') setToken(r.access_token);
+      else state.token = r.access_token;
+      log('✓ Autenticado con Google', 'success');
+      state.step = 1; renderSteps();
+    };
+    _gsiClient.requestAccessToken({ prompt: 'consent' });
+    return;
+  }
+  // Fallback si el cliente global no está listo
+  if (!window.google?.accounts?.oauth2) { log('Google aún no cargó', 'error'); return; }
+  const c = window.google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
+    callback: (r) => {
+      if (r.error) { log('Error: '+r.error, 'error'); return; }
+      if (typeof setToken === 'function') setToken(r.access_token);
+      else state.token = r.access_token;
+      log('✓ Autenticado con Google', 'success');
+      state.step = 1; renderSteps();
+    }
+  });
+  c.requestAccessToken({ prompt: 'consent' });
 }
 
 async function searchFolders() {
