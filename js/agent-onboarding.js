@@ -200,8 +200,8 @@ function doObAuth() {
       client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
       callback: (r) => {
         if (r.error) { obLog('Error: '+r.error, 'error'); return; }
-        obState.token = r.access_token;
-        state.token = r.access_token;
+        if (typeof setToken === 'function') setToken(r.access_token);
+        else { obState.token = r.access_token; state.token = r.access_token; }
         obLog('✓ Autenticado con Google', 'success');
         renderObTasks();
       }
@@ -328,16 +328,14 @@ async function runOnboarding() {
 
         let body, endpoint;
         if (obState.asanaTemplate) {
+          // Al instanciar un template, NO mandamos requested_dates
+          // (los GIDs de fecha son propios de cada template y no son genéricos)
           endpoint = `https://app.asana.com/api/1.0/project_templates/${obState.asanaTemplate}/instantiateProject`;
           body = {
             data: {
               name: folderName,
               public: false,
               workspace: obState.asanaWorkspace,
-              requested_dates: [
-                { gid: 'start_date', value: startDate },
-                { gid: 'due_date',   value: dueDate   },
-              ]
             }
           };
         } else {
@@ -381,7 +379,13 @@ async function runOnboarding() {
         const channelName = slugify(`${obState.expediente}-${obState.cliente}`);
         obState.slackChannel = channelName;
 
-        // Slack API requiere form-encoded para conversations.create desde browser
+        // Slack requiere xoxb- (bot token) para llamadas desde browser
+        // Los tokens xoxe- (user tokens) bloquean CORS
+        if (!obState.slackToken.startsWith('xoxb-')) {
+          obLog('⚠️ Slack: el token debe ser un Bot Token (xoxb-...). Los User Tokens (xoxe-/xoxp-) bloquean CORS desde browser.', 'warn');
+          obLog('  → Creá un Bot Token en api.slack.com/apps → OAuth & Permissions', 'warn');
+          throw new Error('Token inválido para uso desde browser');
+        }
         const params = new URLSearchParams({ name: channelName, is_private: 'false' });
         const r = await fetch('https://slack.com/api/conversations.create', {
           method: 'POST',
