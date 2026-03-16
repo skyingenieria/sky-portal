@@ -5,615 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SKY Ingeniería — Portal IA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg:          #ffffff;
-      --bg-hover:    #f7f7f5;
-      --bg-active:   #efefef;
-      --sidebar-bg:  #fbfbfa;
-      --border:      #e8e8e5;
-      --border2:     #d3d3cf;
-      --text:        #37352f;
-      --text2:       #787774;
-      --text3:       #acaca8;
-      --accent:      #2383e2;
-      --accent-bg:   #e8f2fc;
-      --green:       #0f7b6c;
-      --green-bg:    #e6f4f1;
-      --amber:       #cb912f;
-      --amber-bg:    #fbf3db;
-      --red:         #e03e3e;
-      --font:        'Plus Jakarta Sans', sans-serif;
-      --mono:        'SFMono-Regular', 'Fira Code', monospace;
-    }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
-      font-size: 14px;
-      line-height: 1.5;
-      min-height: 100vh;
-    }
-
-    /* ── LAYOUT ── */
-    .layout { display: flex; min-height: 100vh; }
-
-    /* ── SIDEBAR ── */
-    .sidebar {
-      width: 240px; min-width: 240px;
-      background: var(--sidebar-bg);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      padding: 8px 0;
-      position: fixed;
-      top: 0; bottom: 0; left: 0;
-      overflow-y: auto;
-      z-index: 100;
-    }
-
-    .sidebar-workspace {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      margin: 4px 6px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background .12s;
-    }
-    .sidebar-workspace:hover { background: var(--bg-active); }
-
-    .workspace-icon {
-      width: 28px; height: 28px;
-      background: linear-gradient(135deg, #1a56db, #3b82f6);
-      border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0;
-      color: white;
-      font-weight: 700;
-      font-family: var(--font);
-    }
-
-    .workspace-name {
-      font-size: 13.5px;
-      font-weight: 600;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .workspace-chevron {
-      margin-left: auto;
-      color: var(--text3);
-      font-size: 11px;
-    }
-
-    .sidebar-divider {
-      height: 1px;
-      background: var(--border);
-      margin: 6px 0;
-    }
-
-    .sidebar-section-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text3);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      padding: 6px 18px 2px;
-    }
-
-    .sidebar-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 12px;
-      margin: 1px 6px;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background .1s;
-      color: var(--text2);
-      font-size: 13.5px;
-      text-decoration: none;
-    }
-    .sidebar-item:hover { background: var(--bg-hover); color: var(--text); }
-    .sidebar-item.active { background: var(--bg-active); color: var(--text); }
-
-    .sidebar-item .item-icon {
-      width: 20px; height: 20px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0;
-    }
-
-    .sidebar-item .item-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      flex-shrink: 0; margin-left: auto;
-    }
-
-    .sidebar-bottom {
-      margin-top: auto;
-      padding: 8px 0;
-      border-top: 1px solid var(--border);
-    }
-
-    /* ── MAIN ── */
-    .main {
-      margin-left: 240px;
-      flex: 1;
-      min-height: 100vh;
-    }
-
-    /* ── TOP BAR ── */
-    .topbar {
-      height: 45px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 24px;
-      gap: 8px;
-      background: var(--bg);
-      position: sticky;
-      top: 0;
-      z-index: 50;
-    }
-
-    .topbar-breadcrumb {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      color: var(--text2);
-      font-size: 13.5px;
-    }
-    .topbar-breadcrumb .current { color: var(--text); font-weight: 500; }
-    .topbar-sep { color: var(--text3); }
-
-    .topbar-actions {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .topbar-btn {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      border-radius: 5px;
-      border: none;
-      background: transparent;
-      color: var(--text2);
-      font-family: var(--font);
-      font-size: 13px;
-      cursor: pointer;
-      transition: background .1s, color .1s;
-    }
-    .topbar-btn:hover { background: var(--bg-hover); color: var(--text); }
-    .topbar-btn.primary {
-      background: var(--accent);
-      color: white;
-    }
-    .topbar-btn.primary:hover { background: #1a6ec5; color: white; }
-
-    /* ── PAGE CONTENT ── */
-    .page {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 40px 96px 80px;
-    }
-
-    .page-icon {
-      font-size: 40px;
-      margin-bottom: 8px;
-    }
-
-    .page-title {
-      font-size: 30px;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: -.02em;
-      margin-bottom: 4px;
-    }
-
-    .page-subtitle {
-      font-size: 13.5px;
-      color: var(--text2);
-      margin-bottom: 32px;
-    }
-
-    /* ── CALLOUT ── */
-    .callout {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 12px 14px;
-      border-radius: 5px;
-      font-size: 13.5px;
-      margin-bottom: 28px;
-    }
-    .callout.info { background: var(--accent-bg); color: #1a56db; }
-    .callout.success { background: var(--green-bg); color: var(--green); }
-    .callout.warning { background: var(--amber-bg); color: var(--amber); }
-    .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
-
-    /* ── SECTION HEADER ── */
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-      margin-top: 8px;
-    }
-    .section-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text3);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-    }
-    .section-line {
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-
-    /* ── AGENT GRID ── */
-    .agents-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 8px;
-      margin-bottom: 32px;
-    }
-
-    .agent-card {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      cursor: pointer;
-      transition: box-shadow .15s, border-color .15s;
-      position: relative;
-      text-decoration: none;
-      display: block;
-    }
-    .agent-card:hover {
-      box-shadow: 0 2px 8px rgba(0,0,0,.08), 0 0 0 1px var(--border2);
-    }
-    .agent-card.active-card {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 1px var(--accent);
-    }
-    .agent-card.coming-soon {
-      opacity: .55;
-      cursor: default;
-    }
-    .agent-card.coming-soon:hover { box-shadow: none; border-color: var(--border); }
-
-    .card-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-
-    .card-icon-wrap {
-      width: 36px; height: 36px;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
-      flex-shrink: 0;
-    }
-
-    .badge {
-      font-size: 10px;
-      font-weight: 600;
-      padding: 2px 7px;
-      border-radius: 100px;
-      letter-spacing: .03em;
-    }
-    .badge-live { background: var(--green-bg); color: var(--green); }
-    .badge-soon { background: var(--amber-bg); color: var(--amber); }
-
-    .card-title {
-      font-size: 13.5px;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-    .card-desc {
-      font-size: 12.5px;
-      color: var(--text2);
-      line-height: 1.5;
-      margin-bottom: 12px;
-    }
-
-    .card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-    .tag {
-      font-size: 11px;
-      padding: 2px 7px;
-      border-radius: 4px;
-      background: var(--bg-hover);
-      color: var(--text3);
-      border: 1px solid var(--border);
-      font-family: var(--mono);
-    }
-
-    /* ── AGENT PANEL ── */
-    #agent-panel {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
-      display: none;
-      margin-top: 4px;
-    }
-    #agent-panel.open { display: block; }
-
-    .panel-header {
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--sidebar-bg);
-    }
-    .panel-header-icon {
-      width: 28px; height: 28px;
-      border-radius: 6px;
-      background: linear-gradient(135deg,#1a56db,#3b82f6);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
-    }
-    .panel-title { font-size: 13.5px; font-weight: 600; }
-    .panel-close {
-      margin-left: auto;
-      width: 26px; height: 26px;
-      border-radius: 5px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text2);
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
-      transition: background .1s;
-    }
-    .panel-close:hover { background: var(--bg-hover); color: var(--text); }
-
-    .panel-body { padding: 24px; }
-
-    /* ── CYPE GRID ── */
-    .cype-layout { display: grid; grid-template-columns: 260px 1fr; gap: 20px; }
-
-    /* ── STEPS ── */
-    .steps-col { display: flex; flex-direction: column; gap: 6px; }
-
-    .step-item {
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 12px 14px;
-      transition: border-color .15s;
-    }
-    .step-item.step-active { border-color: var(--accent); background: #fafcff; }
-    .step-item.step-done { border-color: var(--green); background: var(--green-bg); }
-
-    .step-row { display: flex; align-items: center; gap: 8px; margin-bottom: 0; }
-    .step-num {
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 600;
-      flex-shrink: 0;
-    }
-    .step-num.idle { background: var(--bg-hover); color: var(--text3); border: 1px solid var(--border); }
-    .step-num.active { background: var(--accent); color: white; }
-    .step-num.done { background: var(--green); color: white; }
-    .step-label { font-size: 12.5px; font-weight: 500; color: var(--text2); }
-    .step-item.step-active .step-label { color: var(--text); }
-    .step-item.step-done .step-label { color: var(--green); }
-
-    .step-body { margin-top: 10px; }
-
-    /* ── INPUTS ── */
-    .input-wrap { display: flex; gap: 6px; margin-bottom: 8px; }
-    .input-field {
-      flex: 1;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      padding: 7px 10px;
-      font-family: var(--font);
-      font-size: 13px;
-      color: var(--text);
-      outline: none;
-      transition: border-color .15s, box-shadow .15s;
-    }
-    .input-field:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(35,131,226,.15);
-    }
-    .input-field::placeholder { color: var(--text3); }
-
-    /* ── BUTTONS ── */
-    .btn {
-      border: 1px solid var(--border);
-      cursor: pointer;
-      font-family: var(--font);
-      font-weight: 500;
-      font-size: 13px;
-      border-radius: 5px;
-      padding: 6px 12px;
-      background: var(--bg);
-      color: var(--text);
-      transition: background .1s, border-color .1s;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .btn:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border2); }
-    .btn:disabled { opacity: .4; cursor: not-allowed; }
-    .btn-primary {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-    .btn-primary:hover:not(:disabled) { background: #1a6ec5; border-color: #1a6ec5; }
-    .btn-success {
-      background: var(--green);
-      color: white;
-      border-color: var(--green);
-    }
-    .btn-success:hover:not(:disabled) { background: #0d6b5c; }
-
-    /* ── FOLDER LIST ── */
-    .folder-list {
-      max-height: 150px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      background: var(--bg);
-    }
-    .folder-item {
-      padding: 6px 10px;
-      border-bottom: 1px solid var(--border);
-      font-size: 12.5px;
-      color: var(--text2);
-      cursor: pointer;
-      transition: background .08s;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .folder-item:last-child { border-bottom: none; }
-    .folder-item:hover { background: var(--bg-hover); color: var(--text); }
-    .folder-item.selected { background: var(--accent-bg); color: var(--accent); }
-
-    /* ── DROP ZONE ── */
-    .drop-zone {
-      border: 1.5px dashed var(--border2);
-      border-radius: 6px;
-      padding: 18px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color .15s, background .15s;
-      background: var(--bg);
-    }
-    .drop-zone:hover, .drop-zone.has-file {
-      border-color: var(--accent);
-      background: var(--accent-bg);
-    }
-
-    /* ── TERMINAL ── */
-    .terminal {
-      background: #1f1f1f;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 14px;
-      font-family: var(--mono);
-      font-size: 11.5px;
-      height: 260px;
-      overflow-y: auto;
-      line-height: 1.65;
-    }
-    .terminal::-webkit-scrollbar { width: 4px; }
-    .terminal::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
-
-    .log-info    { color: #666; }
-    .log-success { color: #3dd68c; }
-    .log-data    { color: #58b8ff; }
-    .log-warn    { color: #f0bc5e; }
-    .log-error   { color: #f87171; }
-    .log-heading { color: #fff; font-weight: 600; }
-    .log-time    { color: #444; margin-right: 8px; }
-
-    .run-wrap { margin-top: 12px; }
-    .run-btn { width: 100%; padding: 8px; font-size: 13.5px; justify-content: center; }
-
-    .done-bar {
-      margin-top: 10px;
-      padding: 10px 14px;
-      background: var(--green-bg);
-      border: 1px solid rgba(15,123,108,.25);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 12.5px;
-      color: var(--green);
-    }
-    .done-bar a { color: var(--accent); text-decoration: none; font-weight: 500; }
-    .done-bar a:hover { text-decoration: underline; }
-
-    /* ── SETUP GUIDE ── */
-    .setup-guide {
-      margin-top: 10px;
-      padding: 12px;
-      background: var(--bg-hover);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      font-size: 12px;
-      color: var(--text2);
-      line-height: 1.85;
-    }
-    .setup-guide .guide-title {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: var(--text3);
-      margin-bottom: 6px;
-      display: block;
-    }
-    .setup-guide code {
-      font-family: var(--mono);
-      background: var(--bg-active);
-      padding: 1px 5px;
-      border-radius: 3px;
-      font-size: 11px;
-      color: var(--text);
-    }
-
-    /* ── ANIMATIONS ── */
-    @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
-    .fade-in { animation: fadeIn .2s ease forwards; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { display: inline-block; animation: spin .7s linear infinite; }
-
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-    /* ── PROPERTIES TABLE ── */
-    .props-table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
-    .props-table td {
-      padding: 5px 0;
-      font-size: 13.5px;
-      vertical-align: top;
-    }
-    .props-table td:first-child {
-      color: var(--text3);
-      font-size: 12.5px;
-      width: 120px;
-      padding-right: 16px;
-    }
-    .props-table td:last-child { color: var(--text); }
-
-    .prop-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 500;
-    }
-    .prop-tag.live { background: var(--green-bg); color: var(--green); }
-    .prop-tag.beta { background: var(--amber-bg); color: var(--amber); }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/portal.css" />
+</head>
+<body>
 </head>
 <body>
 
@@ -648,9 +43,9 @@
       <span class="item-icon">🚀</span> Onboarding
       <span class="item-dot" style="background:var(--green)"></span>
     </a>
-    <a class="sidebar-item" href="#" onclick="return false;">
+    <a class="sidebar-item" href="#" onclick="openAgent('presupuestos'); return false;">
       <span class="item-icon">💰</span> Presupuestos
-      <span class="item-dot" style="background:var(--amber)"></span>
+      <span class="item-dot" style="background:var(--green)"></span>
     </a>
     <a class="sidebar-item" href="#" onclick="return false;">
       <span class="item-icon">📊</span> Control de Avance
@@ -742,11 +137,24 @@
             <span class="badge badge-live">● Live</span>
           </div>
           <div class="card-title">Onboarding de Proyecto</div>
-          <div class="card-desc">Crea la carpeta del proyecto en Drive a partir del template. Clockify, Slack y Asana próximamente.</div>
+          <div class="card-desc">Crea la carpeta del proyecto en Drive a partir del template. Clockify, Slack y Asana incluidos.</div>
           <div class="card-tags">
             <span class="tag">Drive</span>
             <span class="tag">Template</span>
             <span class="tag">Proyecto</span>
+          </div>
+        </a>
+        <a class="agent-card active-card" onclick="openAgent('presupuestos'); return false;" href="#">
+          <div class="card-top">
+            <div class="card-icon-wrap" style="background:rgba(201,100,66,.15)">💰</div>
+            <span class="badge badge-live">● Live</span>
+          </div>
+          <div class="card-title">Presupuestos</div>
+          <div class="card-desc">Calcula honorarios por pack y genera el presupuesto en Google Docs desde el template.</div>
+          <div class="card-tags">
+            <span class="tag">Honorarios</span>
+            <span class="tag">GDocs</span>
+            <span class="tag">Sheets</span>
           </div>
         </a>
       </div>
@@ -759,15 +167,7 @@
 
       <div class="agents-grid">
 
-        <div class="agent-card coming-soon">
-          <div class="card-top">
-            <div class="card-icon-wrap" style="background:#fef3c7">💰</div>
-            <span class="badge badge-soon">Pronto</span>
-          </div>
-          <div class="card-title">Generador de Presupuestos</div>
-          <div class="card-desc">Genera presupuesto automático con precios actualizados desde el cómputo.</div>
-          <div class="card-tags"><span class="tag">PDF</span><span class="tag">Presupuesto</span></div>
-        </div>
+
 
         <div class="agent-card coming-soon">
           <div class="card-top">
@@ -865,6 +265,262 @@
         </div>
       </div>
 
+
+      <!-- Presupuestos panel -->
+      <div id="presupuestos-panel" style="display:none; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-top:4px;">
+        <div class="panel-header">
+          <div class="panel-header-icon" style="background:var(--accent)">💰</div>
+          <div>
+            <div class="panel-title">Presupuestos</div>
+          </div>
+          <button class="panel-close" onclick="closePresupuestos()">✕</button>
+        </div>
+        <div class="panel-body">
+
+          <!-- Tabs -->
+          <div style="display:flex;gap:2px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0;">
+            <button class="pre-tab active" id="tab-honorarios" onclick="switchPreTab('honorarios')">💵 Honorarios</button>
+            <button class="pre-tab" id="tab-presupuesto" onclick="switchPreTab('presupuesto')">📄 Generar Presupuesto</button>
+          </div>
+
+          <!-- TAB: HONORARIOS -->
+          <div id="pre-panel-honorarios">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+              <!-- Left: config tarifas -->
+              <div>
+                <div class="section-header"><span class="section-title">Tarifas por Pack</span><div class="section-line"></div></div>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:11px;width:60px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Básico</span>
+                    <input class="input-field" id="hon-basico" type="number" placeholder="$/m²"
+                      value="${localStorage.getItem('sky_hon_basico')||''}"
+                      oninput="localStorage.setItem('sky_hon_basico',this.value);calcHonorarios()"
+                      style="flex:1;padding:6px 10px;font-size:13px;" />
+                    <span style="font-size:11px;color:var(--text3)">/m²</span>
+                  </div>
+
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:11px;width:60px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Full</span>
+                    <input class="input-field" id="hon-full" type="number" placeholder="$/m²"
+                      value="${localStorage.getItem('sky_hon_full')||''}"
+                      oninput="localStorage.setItem('sky_hon_full',this.value);calcHonorarios()"
+                      style="flex:1;padding:6px 10px;font-size:13px;" />
+                    <span style="font-size:11px;color:var(--text3)">/m²</span>
+                  </div>
+
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:11px;width:60px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Express</span>
+                    <input class="input-field" id="hon-express" type="number" placeholder="$/m²"
+                      value="${localStorage.getItem('sky_hon_express')||''}"
+                      oninput="localStorage.setItem('sky_hon_express',this.value);calcHonorarios()"
+                      style="flex:1;padding:6px 10px;font-size:13px;" />
+                    <span style="font-size:11px;color:var(--text3)">/m²</span>
+                  </div>
+
+                </div>
+
+                <div class="section-header" style="margin-top:12px;"><span class="section-title">Superficie</span><div class="section-line"></div></div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                  <input class="input-field" id="hon-sup" type="number" placeholder="m² totales"
+                    oninput="calcHonorarios()"
+                    style="flex:1;padding:6px 10px;font-size:13px;" />
+                  <span style="font-size:11px;color:var(--text3)">m²</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <input class="input-field" id="hon-dolar" type="number" placeholder="Cotización USD"
+                    value="${localStorage.getItem('sky_dolar')||''}"
+                    oninput="localStorage.setItem('sky_dolar',this.value);calcHonorarios()"
+                    style="flex:1;padding:6px 10px;font-size:13px;" />
+                  <span style="font-size:11px;color:var(--text3)">ARS/USD</span>
+                </div>
+              </div>
+
+              <!-- Right: results -->
+              <div id="hon-results" style="display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:12px;color:var(--text3);margin-top:2px;">Ingresá superficie y tarifas para ver el cálculo →</div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- TAB: GENERAR PRESUPUESTO -->
+          <div id="pre-panel-presupuesto" style="display:none;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+              <!-- Left: datos -->
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div class="section-header"><span class="section-title">Datos del proyecto</span><div class="section-line"></div></div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Fecha</div>
+                    <input class="input-field" id="pre-fecha" type="date" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Nº Presupuesto</div>
+                    <input class="input-field" id="pre-num" placeholder="26022" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Nombre</div>
+                    <input class="input-field" id="pre-nombre" placeholder="Nombre" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Cliente / Estudio</div>
+                    <input class="input-field" id="pre-cliente" placeholder="Cliente" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                </div>
+
+                <div>
+                  <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Servicio</div>
+                  <select class="input-field" id="pre-servicio" style="width:100%;padding:6px 8px;font-size:12px;">
+                    <option>D.E. - Vivienda unifamiliar</option>
+                    <option>D.E. - Vivienda multifamiliar</option>
+                    <option>D.E. - Industrial</option>
+                    <option>D.E. - Local comercial</option>
+                    <option>D.E. - Otro</option>
+                  </select>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Proyecto</div>
+                    <input class="input-field" id="pre-proyecto" placeholder="Anchorena 588" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Estructura</div>
+                    <input class="input-field" id="pre-estructura" placeholder="Vivienda Unifamiliar" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Ubicación</div>
+                    <input class="input-field" id="pre-ubicacion" placeholder="CABA, Buenos Aires" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Superficie (m²)</div>
+                    <input class="input-field" id="pre-sup" type="number" placeholder="197.00" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                </div>
+
+                <div>
+                  <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Plano de referencia</div>
+                  <input class="input-field" id="pre-plano" placeholder="Anchorena 588 v1" style="width:100%;padding:6px 8px;font-size:12px;" />
+                </div>
+
+                <div>
+                  <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Email cliente</div>
+                  <input class="input-field" id="pre-email" type="email" placeholder="cliente@email.com" style="width:100%;padding:6px 8px;font-size:12px;" />
+                </div>
+
+              </div>
+
+              <!-- Right: honorarios y condiciones -->
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div class="section-header"><span class="section-title">Honorarios</span><div class="section-line"></div></div>
+
+                <div>
+                  <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Moneda</div>
+                  <select class="input-field" id="pre-moneda" style="width:100%;padding:6px 8px;font-size:12px;" onchange="toggleMoneda()">
+                    <option value="ARS">ARS — Pesos</option>
+                    <option value="USD">USD — Dólares</option>
+                  </select>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;">
+                  <div>
+                    <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">Hon. 1 (Básico)</div>
+                    <input class="input-field" id="pre-hon1" type="number" placeholder="930000" style="width:100%;padding:6px 8px;font-size:12px;" oninput="updateHonLetras()" />
+                  </div>
+                  <div>
+                    <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">Hon. 2 (Full)</div>
+                    <input class="input-field" id="pre-hon2" type="number" placeholder="" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                  <div>
+                    <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">Hon. 3 (Express)</div>
+                    <input class="input-field" id="pre-hon3" type="number" placeholder="" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                </div>
+
+                <div>
+                  <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Honorarios en letras</div>
+                  <input class="input-field" id="pre-hon-letras" placeholder="Novecientos treinta mil pesos..." style="width:100%;padding:6px 8px;font-size:12px;" />
+                </div>
+
+                <div class="section-header" style="margin-top:8px;"><span class="section-title">Condiciones</span><div class="section-line"></div></div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Anticipo (%)</div>
+                    <input class="input-field" id="pre-anticipo" type="number" value="50" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                  <div>
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Saldo (%)</div>
+                    <input class="input-field" id="pre-saldo" type="number" value="50" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;">
+                  <div>
+                    <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">Plazo 1</div>
+                    <input class="input-field" id="pre-plazo1" placeholder="1.5 semanas" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                  <div>
+                    <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">Plazo 2</div>
+                    <input class="input-field" id="pre-plazo2" placeholder="1.5 semanas" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                  <div>
+                    <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">Plazo 3</div>
+                    <input class="input-field" id="pre-plazo3" placeholder="" style="width:100%;padding:6px 8px;font-size:12px;" />
+                  </div>
+                </div>
+
+                <div>
+                  <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Validez</div>
+                  <input class="input-field" id="pre-validez" value="15 días" style="width:100%;padding:6px 8px;font-size:12px;" />
+                </div>
+
+                <div class="section-header" style="margin-top:8px;"><span class="section-title">Config. Google</span><div class="section-line"></div></div>
+                <div>
+                  <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Template Doc ID</div>
+                  <input class="input-field" id="pre-template-id"
+                    value="${localStorage.getItem('sky_pre_template')||'1TLUn9ZBcsW8AQg9DE6DHGhJTBXOtJF5WxlICZHm1SGQ'}"
+                    oninput="localStorage.setItem('sky_pre_template',this.value)"
+                    style="width:100%;padding:6px 8px;font-size:11px;font-family:var(--mono);" />
+                </div>
+                <div>
+                  <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">Sheet ID (datos)</div>
+                  <input class="input-field" id="pre-sheet-id"
+                    value="${localStorage.getItem('sky_pre_sheet')||'1cnIJPZeLDvv0Fr9sjVnslfGcHNlXUL-iwEhcPzERKT8'}"
+                    oninput="localStorage.setItem('sky_pre_sheet',this.value)"
+                    style="width:100%;padding:6px 8px;font-size:11px;font-family:var(--mono);" />
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Terminal + run -->
+            <div style="margin-top:16px;">
+              <div class="terminal" id="pre-terminal" style="height:120px;">
+                <span class="log-info">// Completá los datos y ejecutá para generar el presupuesto en Google Docs...</span>
+              </div>
+              <div class="run-wrap" style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+                <button id="pre-run-btn" class="btn btn-primary run-btn" onclick="runPresupuesto()" disabled>
+                  🔒 Autenticá con Google primero
+                </button>
+                <div id="pre-done-bar" style="display:none;"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   </main>
 </div>
@@ -872,644 +528,14 @@
 <!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async></script>
 
-<script>
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
-const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive';
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async></script>
 
-// Template folder ID
-const TEMPLATE_FOLDER_ID = '1rhT_ajJF2WmxZcNzK5DewIFk7ktfcZ9q';
+<!-- Portal JS — modular -->
+<script src="js/core.js"></script>
+<script src="js/agent-cype.js"></script>
+<script src="js/agent-onboarding.js"></script>
+<script src="js/agent-presupuestos.js"></script>
 
-let state = {
-  token: null, step: 0,
-  folders: [], selectedFolder: null,
-  sheets: [], selectedSheet: null,
-  pdfFile: null, pdfBase64: null,
-  running: false, done: false,
-};
-
-// ── Onboarding state ──
-let obState = {
-  token: null,
-  expediente: '', cliente: '', proyecto: '',
-  running: false, done: false, newFolderId: null,
-};
-
-function openAgent(id) {
-  if (id === 'onboarding') {
-    document.getElementById('agent-panel').style.display = 'none';
-    const p = document.getElementById('onboarding-panel');
-    p.style.display = 'block';
-    p.classList.add('fade-in');
-    p.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    renderObTasks();
-    return;
-  }
-  document.getElementById('onboarding-panel').style.display = 'none';
-  const p = document.getElementById('agent-panel');
-  p.classList.add('open','fade-in');
-  p.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  renderSteps();
-}
-function closeAgent() {
-  document.getElementById('agent-panel').classList.remove('open');
-}
-function closeOnboarding() {
-  document.getElementById('onboarding-panel').style.display = 'none';
-}
-
-function renderSteps() {
-  const col = document.getElementById('steps-col');
-  col.innerHTML = '';
-  const steps = [
-    { n:1, label:'Autenticación Google', id:'step-auth' },
-    { n:2, label:'Carpeta del proyecto', id:'step-folder' },
-    { n:3, label:'Sheet de metraje', id:'step-sheet' },
-    { n:4, label:'PDF de CYPECAD', id:'step-pdf' },
-  ];
-  steps.forEach(({ n, label, id }, i) => {
-    const done = state.step > i;
-    const active = state.step === i;
-    const el = document.createElement('div');
-    el.className = `step-item ${done?'step-done':active?'step-active':''}`;
-    el.id = id;
-    const numCls = done?'done':active?'active':'idle';
-    el.innerHTML = `
-      <div class="step-row">
-        <div class="step-num ${numCls}">${done?'✓':n}</div>
-        <div class="step-label">${label}</div>
-      </div>
-      <div class="step-body" id="${id}-body"></div>
-    `;
-    col.appendChild(el);
-    if (active) {
-      const b = el.querySelector(`#${id}-body`);
-      if (i===0) renderAuthStep(b);
-      if (i===1) renderFolderStep(b);
-      if (i===2) renderSheetStep(b);
-      if (i===3) renderPdfStep(b);
-    } else if (done) {
-      const b = el.querySelector(`#${id}-body`);
-      const sums = [
-        `<span style="font-size:12px;color:var(--green)">Conectado con Google</span>`,
-        `<span style="font-size:12px;color:var(--green)">${state.selectedFolder?.name||''}</span>`,
-        `<span style="font-size:12px;color:var(--green)">${state.selectedSheet?.name||''}</span>`,
-        `<span style="font-size:12px;color:var(--green)">${state.pdfFile?.name||''}</span>`,
-      ];
-      b.innerHTML = sums[i]||'';
-    }
-  });
-  updateRunBtn();
-}
-
-function renderAuthStep(b) {
-  b.innerHTML = `
-    <p style="font-size:12px;color:var(--text2);margin-bottom:8px;margin-top:2px;line-height:1.6">
-      Aprobá acceso a Drive + Sheets.<br>Se abre una ventana de Google.
-    </p>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:7px" onclick="doAuth()">
-      🔑 Autorizar con Google
-    </button>
-    <div class="setup-guide">
-      <span class="guide-title">Configuración única (5 min)</span>
-      1. <code>console.cloud.google.com</code><br>
-      2. Habilitar <code>Drive API</code> + <code>Sheets API</code><br>
-      3. Credenciales → OAuth 2.0 → App web<br>
-      4. Origen: tu dominio GitHub Pages<br>
-      5. Reemplazá <code>YOUR_GOOGLE_CLIENT_ID</code> en el código
-    </div>
-  `;
-}
-
-function renderFolderStep(b) {
-  b.innerHTML = `
-    <div class="input-wrap" style="margin-top:2px">
-      <input class="input-field" id="folder-input" placeholder="Ej: Fontana, F25100..."
-             onkeydown="if(event.key==='Enter') searchFolders()" />
-      <button class="btn" onclick="searchFolders()" style="padding:6px 10px">🔍</button>
-    </div>
-    <div class="folder-list" id="folder-list"></div>
-  `;
-}
-
-function renderSheetStep(b) {
-  b.innerHTML = `<div class="folder-list" id="sheet-list" style="margin-top:2px">${
-    state.sheets.map(s => `
-      <div class="folder-item${state.selectedSheet?.id===s.id?' selected':''}"
-           onclick="selectSheet('${s.id}','${s.name.replace(/'/g,"\\'")}')">
-        📊 ${s.name}${s.subfolder?` <span style="color:var(--text3);font-size:11px">/ ${s.subfolder}</span>`:''}
-      </div>`).join('')
-  }</div>`;
-}
-
-function renderPdfStep(b) {
-  b.innerHTML = `
-    <div class="drop-zone ${state.pdfFile?'has-file':''}" style="margin-top:2px"
-         onclick="document.getElementById('pdf-input').click()">
-      <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="loadPdf(this)" />
-      ${state.pdfFile
-        ? `<div style="font-size:20px">✅</div>
-           <div style="font-size:12.5px;color:var(--green);margin-top:3px">${state.pdfFile.name}</div>
-           <div style="font-size:11px;color:var(--text3)">${(state.pdfFile.size/1024).toFixed(1)} KB · click para cambiar</div>`
-        : `<div style="font-size:22px">📄</div>
-           <div style="font-size:12.5px;color:var(--text2);margin-top:4px">Click para subir PDF de CYPECAD</div>`
-      }
-    </div>`;
-}
-
-function updateRunBtn() {
-  const btn = document.getElementById('run-btn');
-  if (!btn) return;
-  const { token, selectedSheet, pdfBase64, running, done } = state;
-  btn.disabled = !token || !selectedSheet || !pdfBase64 || running;
-  if (running) {
-    btn.className = 'btn run-btn';
-    btn.innerHTML = '<span class="spin">⚙️</span> Procesando...';
-  } else if (done) {
-    btn.className = 'btn btn-success run-btn';
-    btn.innerHTML = '✓ Volver a procesar';
-    btn.disabled = false;
-  } else if (!token) {
-    btn.className = 'btn btn-primary run-btn';
-    btn.innerHTML = '🔒 Autenticá con Google primero';
-  } else if (!selectedSheet) {
-    btn.className = 'btn btn-primary run-btn';
-    btn.innerHTML = '📁 Seleccioná carpeta de proyecto';
-  } else if (!pdfBase64) {
-    btn.className = 'btn btn-primary run-btn';
-    btn.innerHTML = '📄 Subí el PDF de CYPECAD';
-  } else {
-    btn.className = 'btn btn-primary run-btn';
-    btn.innerHTML = '▶ Procesar PDF → Google Sheets';
-  }
-}
-
-function doAuth() {
-  log('Abriendo ventana de autorización Google...', 'info');
-  const w = setInterval(() => {
-    if (!window.google?.accounts?.oauth2) return;
-    clearInterval(w);
-    const c = window.google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
-      callback: (r) => {
-        if (r.error) { log('Error: '+r.error, 'error'); return; }
-        state.token = r.access_token;
-        log('✓ Autenticado con Google', 'success');
-        state.step = 1; renderSteps();
-      }
-    });
-    c.requestAccessToken({ prompt: 'consent' });
-  }, 200);
-}
-
-async function searchFolders() {
-  const q = document.getElementById('folder-input')?.value?.trim();
-  if (!q) return;
-  log(`Buscando carpetas con "${q}"...`, 'info');
-  const qu = encodeURIComponent(`name contains '${q}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-  const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${qu}&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true&pageSize=20`,
-    { headers: { Authorization: `Bearer ${state.token}` } });
-  const d = await r.json();
-  if (d.error) { log('Error: '+d.error.message, 'error'); return; }
-  state.folders = d.files || [];
-  log(`${state.folders.length} carpeta(s) encontrada(s)`, state.folders.length?'success':'warn');
-  const list = document.getElementById('folder-list');
-  if (!list) return;
-  list.innerHTML = state.folders.map(f =>
-    `<div class="folder-item" onclick="selectFolder('${f.id}','${f.name.replace(/'/g,"\\'")}')">📁 ${f.name}</div>`
-  ).join('') || `<div style="padding:8px 10px;font-size:12px;color:var(--text3)">Sin resultados</div>`;
-}
-
-async function selectFolder(id, name) {
-  state.selectedFolder = { id, name };
-  log(`Carpeta: ${name}`, 'data');
-  log('Buscando Sheets de metraje...', 'info');
-  document.querySelectorAll('.folder-item').forEach(el => {
-    el.classList.toggle('selected', el.textContent.trim().includes(name));
-  });
-  let all = [];
-  const search = async (pId, sf=null) => {
-    const q = encodeURIComponent(`'${pId}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`);
-    const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true`,
-      { headers: { Authorization: `Bearer ${state.token}` } });
-    const d = await r.json();
-    if (d.files) d.files.forEach(f => all.push({...f, subfolder: sf}));
-  };
-  await search(id);
-  const sq = encodeURIComponent(`'${id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-  const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=${sq}&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true`,
-    { headers: { Authorization: `Bearer ${state.token}` } });
-  const sd = await sr.json();
-  for (const sub of (sd.files||[])) await search(sub.id, sub.name);
-  const kw = ['metraje','cómputo','computo','mc-'];
-  state.sheets = all.filter(f => kw.some(k => f.name.toLowerCase().includes(k)));
-  if (!state.sheets.length) state.sheets = all;
-  if (state.sheets.length === 1) {
-    selectSheet(state.sheets[0].id, state.sheets[0].name);
-    log(`✓ Sheet: ${state.sheets[0].name}`, 'success');
-  } else if (state.sheets.length > 1) {
-    log(`${state.sheets.length} Sheets encontrados, seleccioná uno`, 'warn');
-    state.step = 2; renderSteps();
-  } else {
-    log('No se encontraron Sheets en esta carpeta', 'warn');
-  }
-}
-
-function selectSheet(id, name) {
-  state.selectedSheet = { id, name };
-  log(`Sheet: ${name}`, 'data');
-  state.step = 3; renderSteps();
-}
-
-function loadPdf(input) {
-  const file = input.files[0];
-  if (!file) return;
-  state.pdfFile = file;
-  log(`PDF: ${file.name} (${(file.size/1024).toFixed(1)} KB)`, 'success');
-  const r = new FileReader();
-  r.onload = () => { state.pdfBase64 = r.result.split(',')[1]; state.step = 4; renderSteps(); };
-  r.readAsDataURL(file);
-}
-
-async function runAgent() {
-  if (state.running) return;
-  state.running = true; state.done = false; updateRunBtn();
-  log('─── Iniciando agente CYPE → GSheets ───', 'heading');
-  log('Enviando PDF a Claude para extracción...', 'info');
-  let extracted;
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        system: `Sos un extractor de datos de cómputos estructurales CYPECAD para Argentina.
-Analizá el PDF y devolvé SOLO un JSON válido sin markdown con esta estructura exacta:
-{
-  "obra": "nombre",
-  "hormigon": [{ "nivel": 0, "elem": "PLATEA|LOSA MACIZA|VIGA|COLUMNA|TABIQUE|ESCALERA|VIGA FUNDACION|LOSA DE VIGUETA", "cod": "P0|L100|V100|etc", "cant": 1, "area_h": 0, "area_sup_vigas": 0, "area_m": 0, "vol": 0 }],
-  "acero_barras": [{ "nivel": 0, "elem": "VIGA|COLUMNA|TABIQUE|LOSA MACIZA|ESCALERA|PLATEA|VIGA FUNDACION", "kg_6": 0, "kg_8": 0, "kg_10": 0, "kg_12": 0, "kg_16": 0, "kg_20": 0, "kg_25": 0, "kg_32": 0, "kg_40": 0 }],
-  "acero_aux": [{ "nivel": 0, "elem": "nombre", "cod": "código", "cant": 0, "pos": 0, "cant2": 0, "diam_mm": 0, "long_m": 0 }],
-  "mallas": [{ "nivel": 0, "elem": "nombre", "cod": "P0_Inf|P0_Sup|LV100|LV200", "area_h": 0, "area_sup_vigas": 0, "area_m": 0, "diam_mm": 0, "sep": 0 }]
-}
-SOLO JSON, sin texto extra ni markdown.`,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: state.pdfBase64 } },
-            { type: 'text', text: 'Extraé todos los datos del cómputo estructural de este PDF de CYPECAD.' }
-          ]
-        }]
-      })
-    });
-    const raw = await resp.json();
-    let text = raw.content?.find(b => b.type==='text')?.text || '';
-    text = text.trim().replace(/^```[a-z]*\n?/,'').replace(/\n?```$/,'');
-    extracted = JSON.parse(text);
-    log(`✓ Obra: ${extracted.obra}`, 'data');
-    log(`✓ Hormigón: ${extracted.hormigon?.length||0} elementos`, 'success');
-    log(`✓ Acero barras: ${extracted.acero_barras?.length||0} elementos`, 'success');
-    log(`✓ Acero aux: ${extracted.acero_aux?.length||0} elementos`, 'success');
-    log(`✓ Mallas: ${extracted.mallas?.length||0} elementos`, 'success');
-  } catch(err) {
-    log('Error extrayendo: '+err.message, 'error');
-    state.running=false; updateRunBtn(); return;
-  }
-  log('Escribiendo en Google Sheets...', 'info');
-  const id = state.selectedSheet.id;
-  const bH = r => [r.nivel,r.elem,r.cod,r.cant||0,r.area_h||0,0,0,0,r.area_sup_vigas||0,0,r.area_m||0,0,0,r.vol||0];
-  const bA = r => [r.nivel,r.elem,0,r.kg_6||0,0,r.kg_8||0,0,r.kg_10||0,0,r.kg_12||0,0,r.kg_16||0,0,r.kg_20||0,0,r.kg_25||0,0,r.kg_32||0,0,r.kg_40||0];
-  const bX = r => [r.nivel,'',r.elem,r.cod,r.cant||0,r.pos||0,r.cant2||0,0,r.diam_mm||0,0,r.long_m||0];
-  const bM = r => [r.nivel,r.elem,r.cod,0,r.area_h||0,0,r.area_sup_vigas||0,0,r.area_m||0,r.diam_mm||0,0,r.sep||0];
-  const updates = [];
-  if (extracted.hormigon?.length)    updates.push({ range:`0Hormigón!A4:N${3+extracted.hormigon.length}`,     values: extracted.hormigon.map(bH) });
-  if (extracted.acero_barras?.length) updates.push({ range:`0Acero [brrs]!A4:T${3+extracted.acero_barras.length}`, values: extracted.acero_barras.map(bA) });
-  if (extracted.acero_aux?.length)   updates.push({ range:`0Acero [brra] Aux!A4:K${3+extracted.acero_aux.length}`, values: extracted.acero_aux.map(bX) });
-  if (extracted.mallas?.length)      updates.push({ range:`0Acero [mallas]!A4:L${3+extracted.mallas.length}`,  values: extracted.mallas.map(bM) });
-  try {
-    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${id}/values:batchUpdate`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${state.token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data: updates })
-    });
-    const result = await res.json();
-    if (result.error) { log('Error Sheets API: '+result.error.message, 'error'); state.running=false; updateRunBtn(); return; }
-    const cells = result.responses?.reduce((a,r) => a+(r.updatedCells||0), 0) || 0;
-    log(`✓ ${cells} celdas actualizadas`, 'success');
-    log(`✓ Sheet: ${state.selectedSheet.name}`, 'success');
-    log('─── ¡Completado exitosamente! ───', 'heading');
-    state.done = true;
-    const doneBar = document.getElementById('done-bar');
-    if (doneBar) {
-      doneBar.style.display = 'flex';
-      doneBar.innerHTML = `
-        <span>✓ Sheet actualizado correctamente</span>
-        <a href="https://docs.google.com/spreadsheets/d/${id}" target="_blank">Abrir Sheet ↗</a>
-      `;
-    }
-  } catch(err) {
-    log('Error: '+err.message, 'error');
-  }
-  state.running = false; updateRunBtn();
-}
-
-function log(msg, type='info') {
-  const term = document.getElementById('terminal');
-  if (!term) return;
-  const time = new Date().toLocaleTimeString('es-AR', { hour12: false });
-  const div = document.createElement('div');
-  div.innerHTML = `<span class="log-time">${time}</span><span class="log-${type}">${msg}</span>`;
-  if (term.querySelector('.log-info')?.textContent === '// esperando instrucciones...') term.innerHTML = '';
-  term.appendChild(div);
-  term.scrollTop = term.scrollHeight;
-}
-
-// ═══════════════════════════════════════════════
-//  ONBOARDING DE PROYECTO
-// ═══════════════════════════════════════════════
-
-function obLog(msg, type='info') {
-  const term = document.getElementById('ob-terminal');
-  if (!term) return;
-  const time = new Date().toLocaleTimeString('es-AR', { hour12: false });
-  const div = document.createElement('div');
-  div.innerHTML = `<span class="log-time">${time}</span><span class="log-${type}">${msg}</span>`;
-  if (term.querySelector('.log-info')?.textContent?.includes('Completá los datos')) term.innerHTML = '';
-  term.appendChild(div);
-  term.scrollTop = term.scrollHeight;
-}
-
-function renderObTasks() {
-  const col = document.getElementById('ob-tasks-col');
-  if (!col) return;
-  col.innerHTML = '';
-
-  const tasks = [
-    { id: 'ob-auth',   label: 'Autenticación Google',         icon: '🔑' },
-    { id: 'ob-datos',  label: 'Datos del proyecto',           icon: '📋' },
-    { id: 'ob-drive',  label: 'Duplicar carpeta en Drive',    icon: '📁' },
-    { id: 'ob-clock',  label: 'Crear proyecto en Clockify',   icon: '⏱️', soon: true },
-    { id: 'ob-slack',  label: 'Canal en Slack',               icon: '💬', soon: true },
-    { id: 'ob-asana',  label: 'Proyecto en Asana',            icon: '✅', soon: true },
-  ];
-
-  tasks.forEach(({ id, label, icon, soon }, i) => {
-    const taskIdx = i; // 0=auth,1=datos,2=drive,3..5=soon
-    // Determine state
-    let isDone = false, isActive = false;
-    if (i === 0) { isDone = !!obState.token; isActive = !obState.token; }
-    else if (i === 1) { isDone = obState.expediente && obState.cliente && obState.proyecto; isActive = !!obState.token && !isDone; }
-    else if (i === 2) { isDone = !!obState.newFolderId; isActive = obState.expediente && obState.cliente && obState.proyecto && !isDone; }
-    // soon tasks always idle
-
-    const el = document.createElement('div');
-    const cls = soon ? 'step-item' : isDone ? 'step-item step-done' : isActive ? 'step-item step-active' : 'step-item';
-    el.className = cls;
-    el.id = id;
-    if (soon) el.style.opacity = '0.45';
-
-    const numCls = isDone ? 'done' : isActive ? 'active' : 'idle';
-    el.innerHTML = `
-      <div class="step-row">
-        <div class="step-num ${numCls}">${isDone ? '✓' : icon}</div>
-        <div class="step-label">${label}</div>
-        ${soon ? `<span class="badge badge-soon" style="margin-left:auto;font-size:10px">Pronto</span>` : ''}
-      </div>
-      <div class="step-body" id="${id}-body"></div>
-    `;
-    col.appendChild(el);
-
-    // Render body for active step
-    const body = el.querySelector(`#${id}-body`);
-    if (isActive && i === 0) renderObAuthStep(body);
-    else if (isActive && i === 1) renderObDatosStep(body);
-    else if (isActive && i === 2) renderObDriveStep(body);
-    else if (isDone && i === 2 && obState.newFolderId) {
-      body.innerHTML = `<span style="font-size:12px;color:var(--green)">Carpeta creada correctamente</span>`;
-    }
-  });
-
-  updateObRunBtn();
-}
-
-function renderObAuthStep(b) {
-  b.innerHTML = `
-    <p style="font-size:12px;color:var(--text2);margin-bottom:8px;margin-top:2px;line-height:1.6">
-      Necesita acceso a Google Drive para copiar la carpeta template.
-    </p>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:7px" onclick="doObAuth()">
-      🔑 Autorizar con Google
-    </button>
-  `;
-}
-
-function renderObDatosStep(b) {
-  b.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
-      <input class="input-field" id="ob-expediente" placeholder="Expediente (ej: F2501)"
-             value="${obState.expediente}" oninput="obState.expediente=this.value.trim();updateObRunBtn()" />
-      <input class="input-field" id="ob-cliente" placeholder="Cliente (ej: Fontana)"
-             value="${obState.cliente}" oninput="obState.cliente=this.value.trim();updateObRunBtn()" />
-      <input class="input-field" id="ob-proyecto" placeholder="Proyecto (ej: Edificio Centro)"
-             value="${obState.proyecto}" oninput="obState.proyecto=this.value.trim();updateObRunBtn()" />
-      <div style="font-size:11.5px;color:var(--text3);margin-top:2px">
-        Carpeta resultante: <span id="ob-preview" style="color:var(--text2);font-family:var(--mono)">—</span>
-      </div>
-    </div>
-  `;
-  // live preview
-  ['ob-expediente','ob-cliente','ob-proyecto'].forEach(id => {
-    document.getElementById(id)?.addEventListener('input', updateObPreview);
-  });
-  updateObPreview();
-}
-
-function updateObPreview() {
-  const exp = document.getElementById('ob-expediente')?.value.trim() || '';
-  const cli = document.getElementById('ob-cliente')?.value.trim() || '';
-  const proy = document.getElementById('ob-proyecto')?.value.trim() || '';
-  const preview = document.getElementById('ob-preview');
-  if (preview) {
-    if (exp || cli || proy) {
-      preview.textContent = `${exp || 'XXXX'} - ${cli || 'Cliente'} - ${proy || 'Proyecto'}`;
-    } else {
-      preview.textContent = '—';
-    }
-  }
-}
-
-function renderObDriveStep(b) {
-  const name = `${obState.expediente} - ${obState.cliente} - ${obState.proyecto}`;
-  b.innerHTML = `
-    <div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.7">
-      Se va a duplicar la carpeta template y renombrarla:<br>
-      <span style="font-family:var(--mono);color:var(--accent);font-size:11.5px">${name}</span>
-    </div>
-  `;
-}
-
-function updateObRunBtn() {
-  const btn = document.getElementById('ob-run-btn');
-  if (!btn) return;
-  const { token, expediente, cliente, proyecto, running, done, newFolderId } = obState;
-
-  if (running) {
-    btn.className = 'btn run-btn';
-    btn.innerHTML = '<span class="spin">⚙️</span> Procesando...';
-    btn.disabled = true;
-  } else if (done) {
-    btn.className = 'btn btn-success run-btn';
-    btn.innerHTML = '✓ Proyecto creado — volver a ejecutar';
-    btn.disabled = false;
-  } else if (!token) {
-    btn.className = 'btn btn-primary run-btn';
-    btn.innerHTML = '🔒 Autenticá con Google primero';
-    btn.disabled = true;
-  } else if (!expediente || !cliente || !proyecto) {
-    btn.className = 'btn btn-primary run-btn';
-    btn.innerHTML = '📋 Completá los datos del proyecto';
-    btn.disabled = true;
-  } else {
-    btn.className = 'btn btn-primary run-btn';
-    btn.innerHTML = `🚀 Crear proyecto "${expediente} - ${cliente}"`;
-    btn.disabled = false;
-  }
-}
-
-function doObAuth() {
-  obLog('Abriendo autorización Google...', 'info');
-  const w = setInterval(() => {
-    if (!window.google?.accounts?.oauth2) return;
-    clearInterval(w);
-    const c = window.google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID, scope: SCOPES,
-      callback: (r) => {
-        if (r.error) { obLog('Error: '+r.error, 'error'); return; }
-        obState.token = r.access_token;
-        state.token = r.access_token; // share token with CYPE agent too
-        obLog('✓ Autenticado con Google', 'success');
-        renderObTasks();
-      }
-    });
-    c.requestAccessToken({ prompt: 'consent' });
-  }, 200);
-}
-
-async function runOnboarding() {
-  if (obState.running) return;
-  // Sync datos fields if still open
-  obState.expediente = document.getElementById('ob-expediente')?.value.trim() || obState.expediente;
-  obState.cliente    = document.getElementById('ob-cliente')?.value.trim()    || obState.cliente;
-  obState.proyecto   = document.getElementById('ob-proyecto')?.value.trim()   || obState.proyecto;
-
-  if (!obState.token || !obState.expediente || !obState.cliente || !obState.proyecto) return;
-
-  obState.running = true; obState.done = false; updateObRunBtn();
-  const folderName = `${obState.expediente} - ${obState.cliente} - ${obState.proyecto}`;
-
-  obLog('─── Iniciando onboarding de proyecto ───', 'heading');
-  obLog(`Proyecto: ${folderName}`, 'data');
-
-  try {
-    // 1. Get template folder metadata to find its parent
-    obLog('Buscando carpeta template...', 'info');
-    const metaR = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${TEMPLATE_FOLDER_ID}?fields=id,name,parents&supportsAllDrives=true`,
-      { headers: { Authorization: `Bearer ${obState.token}` } }
-    );
-    const meta = await metaR.json();
-    if (meta.error) throw new Error('Template no encontrado: ' + meta.error.message);
-    const parentId = meta.parents?.[0];
-    obLog(`✓ Template: "${meta.name}"`, 'success');
-    obLog(`✓ Directorio padre encontrado`, 'success');
-
-    // 2. Create new folder in same parent
-    obLog('Creando nueva carpeta...', 'info');
-    const createR = await fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${obState.token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: folderName,
-        mimeType: 'application/vnd.google-apps.folder',
-        parents: [parentId]
-      })
-    });
-    const newFolder = await createR.json();
-    if (newFolder.error) throw new Error('Error creando carpeta: ' + newFolder.error.message);
-    obState.newFolderId = newFolder.id;
-    obLog(`✓ Carpeta creada: "${folderName}"`, 'success');
-
-    // 3. Copy all contents from template recursively
-    obLog('Copiando contenido del template...', 'info');
-    const copied = await copyFolderContents(TEMPLATE_FOLDER_ID, newFolder.id);
-    obLog(`✓ ${copied} elemento(s) copiado(s)`, 'success');
-
-    // 4. Done!
-    obLog('─── ¡Proyecto creado exitosamente! ───', 'heading');
-    obState.done = true;
-    renderObTasks();
-
-    const doneBar = document.getElementById('ob-done-bar');
-    if (doneBar) {
-      doneBar.style.display = 'flex';
-      doneBar.innerHTML = `
-        <span>✓ Carpeta "<strong>${folderName}</strong>" creada en Drive</span>
-        <a href="https://drive.google.com/drive/folders/${newFolder.id}" target="_blank">Abrir en Drive ↗</a>
-      `;
-    }
-
-    obLog('', 'info');
-    obLog('Próximos pasos (próximamente):', 'warn');
-    obLog('  ⏱️  Crear proyecto en Clockify', 'info');
-    obLog('  💬  Crear canal en Slack', 'info');
-    obLog('  ✅  Crear proyecto en Asana', 'info');
-
-  } catch(err) {
-    obLog('Error: ' + err.message, 'error');
-  }
-
-  obState.running = false; updateObRunBtn();
-}
-
-// Recursively copy folder contents
-async function copyFolderContents(srcId, dstId) {
-  let count = 0;
-  // List all items in source folder
-  const q = encodeURIComponent(`'${srcId}' in parents and trashed=false`);
-  const r = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,mimeType)&supportsAllDrives=true&includeItemsFromAllDrives=true&pageSize=100`,
-    { headers: { Authorization: `Bearer ${obState.token}` } }
-  );
-  const data = await r.json();
-  if (data.error) throw new Error(data.error.message);
-
-  for (const file of (data.files || [])) {
-    if (file.mimeType === 'application/vnd.google-apps.folder') {
-      // Create subfolder in destination
-      const cr = await fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${obState.token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: file.name, mimeType: 'application/vnd.google-apps.folder', parents: [dstId] })
-      });
-      const newSub = await cr.json();
-      if (newSub.error) throw new Error(newSub.error.message);
-      obLog(`  📁 ${file.name}/`, 'data');
-      count += await copyFolderContents(file.id, newSub.id);
-    } else {
-      // Copy file
-      const cp = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/copy?supportsAllDrives=true`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${obState.token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: file.name, parents: [dstId] })
-      });
-      const copied = await cp.json();
-      if (copied.error) { obLog(`  ⚠️ No se pudo copiar ${file.name}`, 'warn'); continue; }
-      obLog(`  📄 ${file.name}`, 'data');
-      count++;
-    }
-  }
-  return count;
-}
-</script>
 </body>
 </html>
