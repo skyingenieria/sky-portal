@@ -241,7 +241,7 @@ async function runPresupuesto() {
     // STEP 1: Duplicate template Doc
     preLog('📄 Duplicando template Google Doc...', 'info');
     const docName = `${data.numero || 'PRE'} - ${data.cliente} - ${data.proyecto}`;
-    const copyRes = await fetch(`https://www.googleapis.com/drive/v3/files/${templateId}/copy`, {
+    const copyRes = await fetch(`https://www.googleapis.com/drive/v3/files/${templateId}/copy?supportsAllDrives=true`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: docName })
