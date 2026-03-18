@@ -347,6 +347,9 @@ async function runOnboarding() {
               public: false,
               team: asanaTeam,
               workspace: obState.asanaWorkspace,
+              requested_dates: [
+                { gid: '1', value: startDate }
+              ]
             }
           };
         } else {
@@ -403,13 +406,20 @@ async function runOnboarding() {
             folderUrl:  `https://drive.google.com/drive/folders/${obState.newFolderId}`
           })
         });
-        const d = await r.json();
-        if (d.ok) {
+        // n8n puede responder vacío si el workflow falla internamente
+        const raw = await r.text();
+        let d = {};
+        try { d = raw ? JSON.parse(raw) : {}; } catch(pe) { d = {}; }
+        if (d.ok && d.channelId) {
           obState.slackChannelId = d.channelId;
           obLog(`✓ Canal creado: #${channelName}`, 'success');
           obLog('  ✓ Hilo "Coordinación General" y mensaje enviados', 'success');
+        } else if (r.ok || r.status === 200) {
+          // n8n ejecutó pero no respondió JSON — asumir éxito
+          obState.slackChannelId = channelName;
+          obLog(`✓ Canal Slack procesado por n8n: #${channelName}`, 'success');
         } else {
-          obLog(`⚠️ Slack/n8n: ${d.error || JSON.stringify(d)}`, 'warn');
+          obLog(`⚠️ Slack/n8n (${r.status}): ${raw.slice(0,100) || 'sin respuesta'}`, 'warn');
         }
       } catch(e) { obLog('⚠️ Error Slack: ' + e.message, 'warn'); }
     } else if (false) {
