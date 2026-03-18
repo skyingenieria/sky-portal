@@ -691,3 +691,26 @@
     .hon-card-price { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -.02em; }
     .hon-card-usd { font-size: 12px; color: var(--text2); margin-top: 3px; }
     .hon-card-detail { font-size: 11px; color: var(--text3); margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px; }
+
+    /* ── ONBOARDING STEP BUTTONS ── */
+    .ob-step-btn {
+      padding: 5px 11px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 6px;
+      border: 1px solid var(--border2);
+      background: var(--bg-active);
+      color: var(--text2);
+      cursor: pointer;
+      font-family: var(--font);
+      transition: background .12s, color .12s, border-color .12s;
+    }
+    .ob-step-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+      border-color: var(--accent);
+    }
+    .ob-step-btn:disabled {
+      opacity: .4;
+      cursor: default;
+    }
