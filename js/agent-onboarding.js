@@ -531,3 +531,142 @@ async function renameFilesInFolder(folderId, expediente) {
 }
 
 // ════════════════════════════════════════════
+
+// ════════════════════════════════════════════
+// EJECUTAR PASO INDIVIDUAL DEL ONBOARDING
+// ════════════════════════════════════════════
+async function runObStep(step) {
+  const token = getToken ? getToken() : (obState.token || state.token);
+  if (!token) { obLog('❌ Autenticá con Google primero', 'err'); return; }
+
+  // Sync datos
+  obState.expediente = document.getElementById('ob-exp-in')?.value.trim() || obState.expediente;
+  obState.cliente    = document.getElementById('ob-cli-in')?.value.trim() || obState.cliente;
+  obState.proyecto   = document.getElementById('ob-pro-in')?.value.trim() || obState.proyecto;
+  obState.token      = token;
+
+  // Disable all step buttons during execution
+  document.querySelectorAll('.ob-step-btn').forEach(b => b.disabled = true);
+
+  const folderName = `${obState.expediente} - ${obState.cliente} - ${obState.proyecto}`;
+
+  try {
+    if (step === 'drive') {
+      if (!obState.expediente || !obState.cliente || !obState.proyecto) {
+        obLog('❌ Completá expediente, cliente y proyecto primero', 'err'); return;
+      }
+      obLog('📁 Duplicando carpeta en Drive...', 'heading');
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${TEMPLATE_FOLDER_ID}?supportsAllDrives=true&fields=id,name,parents`,
+        { headers: { Authorization: `Bearer ${token}` } });
+      const src = await res.json();
+      if (!src.id) throw new Error(src.error?.message || 'No se pudo leer el template');
+      const parentId = src.parents?.[0];
+      const copyRes = await fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: parentId ? [parentId] : [] })
+      });
+      const newFolder = await copyRes.json();
+      if (!newFolder.id) throw new Error(newFolder.error?.message || 'Error creando carpeta');
+      obState.newFolderId = newFolder.id;
+      await copyFolderContents(TEMPLATE_FOLDER_ID, newFolder.id);
+      obLog(`✓ Carpeta creada: ${folderName}`, 'success');
+      obLog(`  → https://drive.google.com/drive/folders/${newFolder.id}`, 'info');
+      renderObTasks();
+
+    } else if (step === 'rename') {
+      if (!obState.newFolderId) { obLog('❌ Primero creá la carpeta en Drive', 'err'); return; }
+      obLog('✏️  Renombrando archivos...', 'heading');
+      const count = await renameFilesInFolder(obState.newFolderId, obState.expediente);
+      obState.renamed = true;
+      obState.renamedCount = count;
+      obLog(`✓ ${count} archivo(s) renombrado(s)`, 'success');
+      renderObTasks();
+
+    } else if (step === 'clockify') {
+      obState.clockifyKey       = document.getElementById('ob-clock-key')?.value.trim() || obState.clockifyKey;
+      obState.clockifyWorkspace = document.getElementById('ob-clock-ws')?.value.trim()  || obState.clockifyWorkspace;
+      if (!obState.clockifyKey || !obState.clockifyWorkspace) { obLog('❌ Configurá la API key de Clockify', 'err'); return; }
+      obLog('⏱️  Creando proyecto en Clockify...', 'heading');
+      const r = await fetch(`https://api.clockify.me/api/v1/workspaces/${obState.clockifyWorkspace}/projects`, {
+        method: 'POST',
+        headers: { 'X-Api-Key': obState.clockifyKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: folderName, color: '#03A9F4', billable: true, public: false })
+      });
+      const d = await r.json();
+      if (!d.id) throw new Error(d.message || JSON.stringify(d));
+      obState.clockifyProjectId = d.id;
+      obLog(`✓ Proyecto creado: ${d.name}`, 'success');
+      const tasks = ['ING - ANTEPROYECTO','ING - PROYECTO','DEL - ANTEPROYECTO','DEL - PROYECTO'];
+      for (const t of tasks) {
+        const tr = await fetch(`https://api.clockify.me/api/v1/workspaces/${obState.clockifyWorkspace}/projects/${d.id}/tasks`, {
+          method: 'POST', headers: { 'X-Api-Key': obState.clockifyKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: t, status: 'ACTIVE' })
+        });
+        const td = await tr.json();
+        obLog(`  ✓ Task: ${t}`, td.id ? 'success' : 'warn');
+      }
+      renderObTasks();
+
+    } else if (step === 'asana') {
+      obState.asanaToken     = document.getElementById('ob-asana-tok')?.value.trim() || obState.asanaToken;
+      obState.asanaWorkspace = document.getElementById('ob-asana-ws')?.value.trim()  || obState.asanaWorkspace;
+      if (!obState.asanaToken || !obState.asanaWorkspace) { obLog('❌ Configurá el token de Asana', 'err'); return; }
+      obLog('✅  Creando proyecto en Asana...', 'heading');
+      const todayD = new Date();
+      const startDate = todayD.toISOString().split('T')[0];
+      const dueD = new Date(todayD); dueD.setDate(dueD.getDate() + 90);
+      const dueDate = dueD.toISOString().split('T')[0];
+      const asanaTeam = obState.asanaTeam || localStorage.getItem('sky_asana_team') || '1200032286600828';
+      let body, endpoint;
+      if (obState.asanaTemplate) {
+        endpoint = `https://app.asana.com/api/1.0/project_templates/${obState.asanaTemplate}/instantiateProject`;
+        body = { data: { name: folderName, public: false, team: asanaTeam, workspace: obState.asanaWorkspace, requested_dates: [{ gid: '1', value: startDate }] } };
+      } else {
+        endpoint = 'https://app.asana.com/api/1.0/projects';
+        body = { data: { name: folderName, workspace: obState.asanaWorkspace, team: asanaTeam, color: 'light-blue', default_view: 'list', start_on: startDate, due_on: dueDate } };
+      }
+      const r = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${obState.asanaToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const d = await r.json();
+      const gid = d.data?.gid || d.data?.new_project?.gid;
+      if (!gid) throw new Error(d.errors?.[0]?.message || JSON.stringify(d));
+      obState.asanaProjectId = gid;
+      obLog(`✓ Proyecto Asana creado (GID: ${gid})`, 'success');
+      renderObTasks();
+
+    } else if (step === 'slack') {
+      obLog('💬  Creando canal en Slack via n8n...', 'heading');
+      if (!obState.expediente || !obState.cliente) { obLog('❌ Completá expediente y cliente', 'err'); return; }
+      const N8N_SLACK_WEBHOOK = 'https://n8n.srv1406959.hstgr.cloud/webhook/sky-slack-crear-canal';
+      const channelName = slugify(`${obState.expediente}-${obState.cliente}`);
+      obState.slackChannel = channelName;
+      const r = await fetch(N8N_SLACK_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelName, expediente: obState.expediente, cliente: obState.cliente, proyecto: obState.proyecto,
+          folderUrl: obState.newFolderId ? `https://drive.google.com/drive/folders/${obState.newFolderId}` : '(sin carpeta aún)' })
+      });
+      const raw = await r.text();
+      let d = {}; try { d = raw ? JSON.parse(raw) : {}; } catch(e) {}
+      if (d.ok && d.channelId) {
+        obState.slackChannelId = d.channelId;
+        obLog(`✓ Canal creado: #${channelName}`, 'success');
+      } else if (r.ok) {
+        obState.slackChannelId = channelName;
+        obLog(`✓ Canal Slack procesado: #${channelName}`, 'success');
+      } else {
+        throw new Error(raw.slice(0,100) || 'Error en n8n');
+      }
+      renderObTasks();
+    }
+
+  } catch(e) {
+    obLog(`❌ Error en ${step}: ${e.message}`, 'err');
+  } finally {
+    document.querySelectorAll('.ob-step-btn').forEach(b => b.disabled = false);
+  }
+}
