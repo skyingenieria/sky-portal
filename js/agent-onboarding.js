@@ -383,51 +383,36 @@ async function runOnboarding() {
       obLog('⏭️  Asana: sin token configurado, omitido', 'warn');
     }
 
-    // ── PASO 5: Slack ──
-    if (!obState.slackChannelId && obState.slackToken) {
+    // ── PASO 5: Slack via n8n ──
+    const N8N_SLACK_WEBHOOK = 'https://n8n.srv1406959.hstgr.cloud/webhook/sky-slack-crear-canal';
+    if (!obState.slackChannelId) {
       obLog('', 'info');
-      obLog('💬  Creando canal en Slack...', 'heading');
+      obLog('💬  Creando canal en Slack via n8n...', 'heading');
       try {
         const channelName = slugify(`${obState.expediente}-${obState.cliente}`);
         obState.slackChannel = channelName;
 
-        // Slack requiere xoxb- (bot token) para llamadas desde browser
-        // Los tokens xoxe- (user tokens) bloquean CORS
-        if (!obState.slackToken.startsWith('xoxb-')) {
-          obLog('⚠️ Slack: el token debe ser un Bot Token (xoxb-...). Los User Tokens (xoxe-/xoxp-) bloquean CORS desde browser.', 'warn');
-          obLog('  → Creá un Bot Token en api.slack.com/apps → OAuth & Permissions', 'warn');
-          throw new Error('Token inválido para uso desde browser');
-        }
-        const params = new URLSearchParams({ name: channelName, is_private: 'false' });
-        const r = await fetch('https://slack.com/api/conversations.create', {
+        const r = await fetch(N8N_SLACK_WEBHOOK, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${obState.slackToken}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: params.toString()
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelName,
+            expediente: obState.expediente,
+            cliente:    obState.cliente,
+            proyecto:   obState.proyecto,
+            folderUrl:  `https://drive.google.com/drive/folders/${obState.newFolderId}`
+          })
         });
         const d = await r.json();
         if (d.ok) {
-          obState.slackChannelId = d.channel.id;
-          obLog(`✓ Canal creado: #${channelName} (${d.channel.id})`, 'success');
-          // Post welcome message
-          const msgParams = new URLSearchParams({
-            channel: d.channel.id,
-            text: `🚀 *Nuevo proyecto*\n*Expediente:* ${obState.expediente}\n*Cliente:* ${obState.cliente}\n*Proyecto:* ${obState.proyecto}\n*Drive:* https://drive.google.com/drive/folders/${obState.newFolderId}`
-          });
-          await fetch('https://slack.com/api/chat.postMessage', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${obState.slackToken}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: msgParams.toString()
-          });
-          obLog('  ✓ Mensaje de bienvenida enviado', 'success');
+          obState.slackChannelId = d.channelId;
+          obLog(`✓ Canal creado: #${channelName}`, 'success');
+          obLog('  ✓ Hilo "Coordinación General" y mensaje enviados', 'success');
         } else {
-          if (d.error === 'name_taken') {
-            obLog(`⚠️ El canal #${channelName} ya existe`, 'warn');
-          } else {
-            obLog(`⚠️ Slack: ${d.error || JSON.stringify(d)}`, 'warn');
-          }
+          obLog(`⚠️ Slack/n8n: ${d.error || JSON.stringify(d)}`, 'warn');
         }
       } catch(e) { obLog('⚠️ Error Slack: ' + e.message, 'warn'); }
-    } else if (!obState.slackToken) {
+    } else if (false) {
       obLog('⏭️  Slack: sin bot token configurado, omitido', 'warn');
     }
 
