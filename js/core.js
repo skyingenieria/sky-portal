@@ -134,8 +134,11 @@ function setToken(token) {
     if (el) { el.disabled = false; }
   });
   document.getElementById('run-btn') && (document.getElementById('run-btn').innerHTML = '▶ Procesar PDF con IA');
-  document.getElementById('ob-run-btn') && (document.getElementById('ob-run-btn').textContent = '🚀 Ejecutar Onboarding');
+  document.getElementById('ob-run-btn') && (document.getElementById('ob-run-btn').textContent = '🚀 Ejecutar Onboarding completo');
   document.getElementById('pre-run-btn') && (document.getElementById('pre-run-btn').textContent = '🚀 Generar Presupuesto');
+  // Mostrar botones individuales del onboarding
+  const indBtns = document.getElementById('ob-individual-btns');
+  if (indBtns) indBtns.style.display = 'flex';
 }
 
 // El client se inicializa al cargar la página (no en el click)
