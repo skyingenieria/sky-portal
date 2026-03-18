@@ -255,10 +255,22 @@
               <div class="terminal" id="ob-terminal">
                 <span class="log-info">// Completá los datos del proyecto y ejecutá el onboarding...</span>
               </div>
-              <div class="run-wrap">
+              <div class="run-wrap" style="flex-direction:column;gap:8px;align-items:stretch;">
+                <!-- Botón principal -->
                 <button id="ob-run-btn" class="btn btn-primary run-btn" onclick="runOnboarding()" disabled>
                   🔒 Autenticá con Google primero
                 </button>
+                <!-- Botones individuales -->
+                <div id="ob-individual-btns" style="display:none;gap:6px;flex-wrap:wrap;">
+                  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;width:100%;padding-top:2px;">
+                    — o ejecutar por separado —
+                  </div>
+                  <button class="btn ob-step-btn" onclick="runObStep('drive')"    title="Duplicar carpeta en Drive">📁 Drive</button>
+                  <button class="btn ob-step-btn" onclick="runObStep('rename')"   title="Renombrar archivos">✏️ Renombrar</button>
+                  <button class="btn ob-step-btn" onclick="runObStep('clockify')" title="Crear proyecto en Clockify">⏱️ Clockify</button>
+                  <button class="btn ob-step-btn" onclick="runObStep('asana')"    title="Crear proyecto en Asana">✅ Asana</button>
+                  <button class="btn ob-step-btn" onclick="runObStep('slack')"    title="Crear canal en Slack">💬 Slack</button>
+                </div>
               </div>
               <div id="ob-done-bar" style="display:none"></div>
             </div>
