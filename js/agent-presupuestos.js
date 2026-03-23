@@ -315,7 +315,13 @@ async function runPresupuesto() {
     });
     const docsData = await docsRes.json();
     if (docsData.error) {
-      preLog(`⚠️  Docs API: ${docsData.error.message} — el doc fue creado igualmente`, 'warn');
+      if (docsData.error.status === 'PERMISSION_DENIED' || docsData.error.message?.includes('has not been used')) {
+        preLog('⚠️  Docs API no habilitada. Habilitala en:', 'warn');
+        preLog('    console.cloud.google.com → APIs → Google Docs API → Habilitar', 'warn');
+        preLog('    El doc fue creado pero sin reemplazar los {{campos}}', 'warn');
+      } else {
+        preLog(`⚠️  Docs API: ${docsData.error.message}`, 'warn');
+      }
     } else {
       preLog(`✓ Campos reemplazados (${requests.length} placeholders)`, 'ok');
     }
@@ -416,19 +422,34 @@ let _clientesCache = null;
 async function loadClientes() {
   if (_clientesCache) return _clientesCache;
   const token = getPreToken();
-  if (!token) return [];
+  if (!token) { preLog('❌ Autenticá con Google para buscar clientes', 'err'); return []; }
   const sheetId = CLIENTES_SHEET_ID();
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/001%20Clientes!A:E?majorDimension=ROWS`;
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  const d = await r.json();
-  const rows = d.values || [];
-  // Skip header row (row 1), cols: A=ID, B=Estudio/Cliente, C=Representante, D=Contacto(email)
+
+  // Try sheet name first, fallback to gid
+  let rows = [];
+  const tryUrls = [
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/001%20Clientes!A:D`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Clientes!A:D`,
+  ];
+  for (const url of tryUrls) {
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    if (d.values && d.values.length > 1) { rows = d.values; break; }
+  }
+
+  if (rows.length === 0) {
+    preLog('⚠️ No se encontraron clientes en la planilla — verificá el Sheet ID de clientes', 'warn');
+    return [];
+  }
+
+  // Skip header row, cols: A=ID, B=Estudio/Cliente, C=Representante, D=Contacto(email)
   _clientesCache = rows.slice(1).filter(r => r[1]).map(r => ({
     id:           r[0] || '',
     nombre:       r[1] || '',
     representante:r[2] || '',
     email:        r[3] || '',
   }));
+  preLog(`✓ ${_clientesCache.length} clientes cargados`, 'ok');
   return _clientesCache;
 }
 
@@ -580,18 +601,25 @@ Quedamos a disposición ante cualquier consulta.
 Saludos,
 SKY Ingeniería Estructural`;
 
+  // Helper: UTF-8 safe base64
+  function toBase64(str) {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+  function toBase64url(str) {
+    return toBase64(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
   // Create MIME message
   const email = [
     `To: ${data.email}`,
-    `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`,
+    `Subject: =?UTF-8?B?${toBase64(subject)}?=`,
     'Content-Type: text/plain; charset=UTF-8',
     'MIME-Version: 1.0',
     '',
     body
   ].join('\r\n');
 
-  const encoded = btoa(unescape(encodeURIComponent(email)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const encoded = toBase64url(email);
 
   const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
     method: 'POST',
