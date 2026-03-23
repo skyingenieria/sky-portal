@@ -714,3 +714,8 @@
       opacity: .4;
       cursor: default;
     }
+
+    /* ── CLIENTE AUTOCOMPLETE ── */
+    #pre-cliente-suggestions div {
+      transition: background .1s;
+    }
