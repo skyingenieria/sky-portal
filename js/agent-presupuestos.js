@@ -59,10 +59,16 @@ function openAgent_presupuestos() {
   // Fix template/sheet ID fields
   const tplEl = document.getElementById('pre-template-id');
   const sheetEl = document.getElementById('pre-sheet-id');
+  const clientesEl = document.getElementById('pre-sheet-clientes');
   if (tplEl && (!tplEl.value || tplEl.value.includes('localStorage')))
     tplEl.value = localStorage.getItem('sky_pre_template') || '1TLUn9ZBcsW8AQg9DE6DHGhJTBXOtJF5WxlICZHm1SGQ';
   if (sheetEl && (!sheetEl.value || sheetEl.value.includes('localStorage')))
     sheetEl.value = localStorage.getItem('sky_pre_sheet') || '1cnIJPZeLDvv0Fr9sjVnslfGcHNlXUL-iwEhcPzERKT8';
+  if (clientesEl && !clientesEl.value)
+    clientesEl.value = localStorage.getItem('sky_pre_sheet_clientes') || '1YbxA1K_EnLMGC44o9159LiyLrii5Gi8F2a-H3mRf8us';
+
+  // Reset client cache when opening
+  _clientesCache = null;
 
   preUpdateAuthBtn();
 }
@@ -120,6 +126,12 @@ function calcHonorarios() {
         <div class="hon-card-detail">${fmt(p.tarifa, 'ARS')}/m² × ${sup.toLocaleString('es-AR')} m²</div>
       </div>`;
   });
+  // Add "Usar en presupuesto" button
+  html += `<button onclick="syncHonorariosToPresupuesto();switchPreTab('presupuesto')"
+    style="margin-top:8px;padding:6px 12px;background:var(--accent);color:#fff;border:none;
+    border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);">
+    → Usar en presupuesto
+  </button>`;
   html += '</div>';
   res.innerHTML = html;
 }
@@ -337,16 +349,51 @@ async function runPresupuesto() {
 
     // DONE
     preLog('✅ ¡Presupuesto generado con éxito!', 'ok');
+
+    // Gmail draft
+    let gmailDraftId = null;
+    if (data.email) {
+      preLog('📧 Creando borrador en Gmail...', 'info');
+      try {
+        const draft = await createGmailDraft(data, newDocUrl);
+        if (draft) {
+          gmailDraftId = draft.id;
+          preLog('✓ Borrador creado en Gmail', 'ok');
+        }
+      } catch(ge) { preLog('⚠️ Gmail: ' + ge.message, 'warn'); }
+    }
+
+    const whatsappText = encodeURIComponent(`Hola ${data.nombre || data.cliente}, te comparto el presupuesto Nº ${data.numero}: ${newDocUrl}`);
+    const gmailUrl = gmailDraftId
+      ? `https://mail.google.com/mail/#drafts`
+      : `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(data.email)}&su=${encodeURIComponent('Presupuesto N° '+data.numero+' — '+data.proyecto)}`;
+
     const bar = document.getElementById('pre-done-bar');
     bar.style.display = 'block';
     bar.innerHTML = `
-      <div class="done-bar" style="margin-top:10px;padding:12px 16px;border-radius:8px;display:flex;align-items:center;gap:10px;border:1px solid var(--border);">
-        <span style="color:var(--green);font-size:16px">✅</span>
-        <span style="font-size:13px;color:var(--text)">Presupuesto <strong>${docName}</strong> creado</span>
-        <a href="${newDocUrl}" target="_blank"
-           style="margin-left:auto;font-size:12px;color:var(--accent);text-decoration:none;border:1px solid var(--accent);padding:4px 10px;border-radius:5px;">
-          Abrir Doc →
-        </a>
+      <div class="done-bar" style="margin-top:10px;padding:14px 16px;border-radius:8px;border:1px solid var(--border);display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="color:var(--green);font-size:16px">✅</span>
+          <span style="font-size:13px;color:var(--text)">Presupuesto <strong>${docName}</strong> creado</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <a href="${newDocUrl}" target="_blank"
+            style="font-size:12px;color:var(--accent);text-decoration:none;border:1px solid var(--accent);padding:5px 12px;border-radius:5px;display:flex;align-items:center;gap:4px;">
+            📄 Abrir Doc
+          </a>
+          ${data.email ? `<a href="${gmailUrl}" target="_blank"
+            style="font-size:12px;color:#4ade80;text-decoration:none;border:1px solid #4ade80;padding:5px 12px;border-radius:5px;display:flex;align-items:center;gap:4px;">
+            ✉️ ${gmailDraftId ? 'Ver borrador Gmail' : 'Redactar email'}
+          </a>` : ''}
+          <a href="https://wa.me/?text=${whatsappText}" target="_blank"
+            style="font-size:12px;color:#25d366;text-decoration:none;border:1px solid #25d366;padding:5px 12px;border-radius:5px;display:flex;align-items:center;gap:4px;">
+            💬 Compartir WhatsApp
+          </a>
+          <a href="${newDocUrl.replace('/edit','/export?format=pdf')}" target="_blank"
+            style="font-size:12px;color:var(--text2);text-decoration:none;border:1px solid var(--border2);padding:5px 12px;border-radius:5px;display:flex;align-items:center;gap:4px;">
+            ⬇️ Descargar PDF
+          </a>
+        </div>
       </div>`;
 
   } catch(e) {
@@ -354,4 +401,203 @@ async function runPresupuesto() {
   }
 
   btn.disabled = false; btn.textContent = '🚀 Generar Presupuesto';
+}
+
+// ════════════════════════════════════════════
+// CLIENTES AUTOCOMPLETE
+// ════════════════════════════════════════════
+const CLIENTES_SHEET_ID = () => document.getElementById('pre-sheet-clientes')?.value
+  || localStorage.getItem('sky_pre_sheet_clientes')
+  || '1YbxA1K_EnLMGC44o9159LiyLrii5Gi8F2a-H3mRf8us';
+const CLIENTES_GID = '1854755777';
+
+let _clientesCache = null;
+
+async function loadClientes() {
+  if (_clientesCache) return _clientesCache;
+  const token = getPreToken();
+  if (!token) return [];
+  const sheetId = CLIENTES_SHEET_ID();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/001%20Clientes!A:E?majorDimension=ROWS`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const d = await r.json();
+  const rows = d.values || [];
+  // Skip header row (row 1), cols: A=ID, B=Estudio/Cliente, C=Representante, D=Contacto(email)
+  _clientesCache = rows.slice(1).filter(r => r[1]).map(r => ({
+    id:           r[0] || '',
+    nombre:       r[1] || '',
+    representante:r[2] || '',
+    email:        r[3] || '',
+  }));
+  return _clientesCache;
+}
+
+async function preClienteSearch(query) {
+  const box = document.getElementById('pre-cliente-suggestions');
+  if (!query || query.length < 2) { box.style.display = 'none'; return; }
+  const clientes = await loadClientes();
+  const q = query.toLowerCase();
+  const matches = clientes.filter(c =>
+    c.nombre.toLowerCase().includes(q) || c.representante.toLowerCase().includes(q)
+  ).slice(0, 8);
+
+  if (matches.length === 0) {
+    box.innerHTML = `<div style="padding:8px 12px;font-size:12px;color:var(--text3)">
+      Sin resultados — <span style="color:var(--accent);cursor:pointer" onclick="preCrearCliente('${query.replace(/'/g,"\'")}')">
+      + Crear "${query}" como nuevo cliente
+      </span></div>`;
+    box.style.display = 'block';
+    return;
+  }
+
+  box.innerHTML = matches.map(c => `
+    <div onclick="preSelectCliente(${JSON.stringify(c).replace(/"/g,'&quot;')})"
+      style="padding:7px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;"
+      onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+      <div style="flex:1">
+        <div style="color:var(--text);font-weight:500">${c.nombre}</div>
+        ${c.representante ? `<div style="color:var(--text3);font-size:11px">${c.representante}</div>` : ''}
+      </div>
+      ${c.email ? `<div style="font-size:10px;color:var(--accent)">${c.email}</div>` : ''}
+    </div>`).join('') +
+    `<div onclick="preCrearCliente('${query.replace(/'/g,"\'")}'')"
+      style="padding:7px 12px;font-size:12px;cursor:pointer;color:var(--accent);"
+      onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+      + Crear "${query}" como nuevo cliente
+    </div>`;
+  box.style.display = 'block';
+}
+
+function preSelectCliente(c) {
+  document.getElementById('pre-cliente').value = c.nombre;
+  if (c.representante) document.getElementById('pre-nombre').value = c.representante;
+  if (c.email) document.getElementById('pre-email').value = c.email;
+  document.getElementById('pre-cliente-suggestions').style.display = 'none';
+  // Store selected client data
+  window._preSelectedCliente = c;
+}
+
+async function preCrearCliente(nombre) {
+  document.getElementById('pre-cliente-suggestions').style.display = 'none';
+  document.getElementById('pre-cliente').value = nombre;
+  const token = getPreToken();
+  if (!token) return;
+  preLog(`📋 Creando nuevo cliente: ${nombre}...`, 'info');
+  const sheetId = CLIENTES_SHEET_ID();
+  // Get current client count to generate next ID
+  const clientes = await loadClientes();
+  const nextNum = clientes.length + 1;
+  const newId = 'CLI' + String(nextNum).padStart(3, '0');
+  const row = [newId, nombre, '', '', 'https://wa.me/', 'Prospecto'];
+  const r = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/001%20Clientes!A:F:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: [row] })
+    }
+  );
+  const d = await r.json();
+  if (!d.error) {
+    _clientesCache = null; // Reset cache
+    preLog(`✓ Cliente ${newId} - ${nombre} creado en la planilla`, 'ok');
+    window._preSelectedCliente = { id: newId, nombre, representante: '', email: '' };
+  } else {
+    preLog(`⚠️ Error creando cliente: ${d.error.message}`, 'warn');
+  }
+}
+
+// Close suggestions on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#pre-cliente') && !e.target.closest('#pre-cliente-suggestions')) {
+    const box = document.getElementById('pre-cliente-suggestions');
+    if (box) box.style.display = 'none';
+  }
+});
+
+// ════════════════════════════════════════════
+// SYNC HONORARIOS → GENERAR PRESUPUESTO
+// ════════════════════════════════════════════
+function syncHonorariosToPresupuesto() {
+  const sup     = document.getElementById('hon-sup')?.value;
+  const basico  = document.getElementById('hon-basico')?.value;
+  const full    = document.getElementById('hon-full')?.value;
+  const express = document.getElementById('hon-express')?.value;
+
+  const supEl = document.getElementById('pre-sup');
+  const h1El  = document.getElementById('pre-hon1');
+  const h2El  = document.getElementById('pre-hon2');
+  const h3El  = document.getElementById('pre-hon3');
+
+  if (sup && supEl && !supEl.value) supEl.value = sup;
+
+  // Calculate totals and format
+  if (basico && sup && h1El) {
+    const total = Math.round(parseFloat(basico) * parseFloat(sup));
+    h1El.dataset.raw = String(total);
+    h1El.value = '$ ' + total.toLocaleString('es-AR');
+    updateHonLetras();
+  }
+  if (full && sup && h2El) {
+    const total = Math.round(parseFloat(full) * parseFloat(sup));
+    h2El.dataset.raw = String(total);
+    h2El.value = '$ ' + total.toLocaleString('es-AR');
+  }
+  if (express && sup && h3El) {
+    const total = Math.round(parseFloat(express) * parseFloat(sup));
+    h3El.dataset.raw = String(total);
+    h3El.value = '$ ' + total.toLocaleString('es-AR');
+  }
+}
+
+// ════════════════════════════════════════════
+// GMAIL DRAFT
+// ════════════════════════════════════════════
+async function createGmailDraft(data, docUrl) {
+  const token = getPreToken();
+  if (!token) return null;
+
+  const monedaSym = data.moneda === 'USD' ? 'U$D' : '$';
+  const hon1fmt = data.hon1 ? monedaSym + ' ' + Number(data.hon1).toLocaleString('es-AR') : '';
+
+  const subject = `Presupuesto Nº ${data.numero} — ${data.cliente} — ${data.proyecto}`;
+  const body = `Estimado/a ${data.nombre || data.cliente},
+
+Adjunto encontrará el presupuesto Nº ${data.numero} correspondiente al proyecto "${data.proyecto}" en ${data.ubicacion || 'Buenos Aires'}.
+
+📋 Resumen:
+• Servicio: ${data.servicio}
+• Superficie: ${data.superficie} m²
+• Honorarios: ${data.honLetras || hon1fmt}
+• Anticipo: ${data.anticipo}% — Saldo: ${data.saldo}%
+• Plazo de entrega: ${data.plazo1} días (anticipo) / ${data.plazo2} días (saldo)
+• Validez: ${data.validez}
+
+🔗 Ver presupuesto completo: ${docUrl}
+
+Quedamos a disposición ante cualquier consulta.
+
+Saludos,
+SKY Ingeniería Estructural`;
+
+  // Create MIME message
+  const email = [
+    `To: ${data.email}`,
+    `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`,
+    'Content-Type: text/plain; charset=UTF-8',
+    'MIME-Version: 1.0',
+    '',
+    body
+  ].join('\r\n');
+
+  const encoded = btoa(unescape(encodeURIComponent(email)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+  const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: { raw: encoded } })
+  });
+  const d = await r.json();
+  return d.id ? d : null;
 }
