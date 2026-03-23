@@ -1,5 +1,5 @@
 const GOOGLE_CLIENT_ID = '277799503106-ak7jbpsu92ut583mo6u84dvr1kru9sli.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents';
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/gmail.compose';
 
 // Template folder ID
 const TEMPLATE_FOLDER_ID = '1rhT_ajJF2WmxZcNzK5DewIFk7ktfcZ9q';
